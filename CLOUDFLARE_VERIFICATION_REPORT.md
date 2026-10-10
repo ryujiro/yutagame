@@ -9,10 +9,12 @@
 - Node29件、Python55件、計84件のテストが成功。無料版のJSON検証・前回値保持・JST・GETによる表示更新・認証POSTなし・取得用スクリプトの未設定停止・失敗後10分待機を含む。
 - Reactの本番ビルド成功。ローカルの実workerdで画面を起動し、スマホ幅390/320を含む画面10項目が成功。無料版の表示更新でGETが1回、認証POSTが0回であることを確認。
 - Workflow YAMLの読み込み、時刻設定、単一ジョブ、書き込み権限の構造を確認。actionlintは環境にないため未実行。GitHub上でのworkflow実行は未確認。
-- GitHubの既存の公開JSONを認証情報なしのHTTPS GETで読めた（200）。新しい公開JSONはmainへの保存後に再確認する。
+- GitHubの既存の公開JSONを認証情報なしのHTTPS GETで読めた（200）。新しい公開JSONもmainへの保存後にHTTPS GETで200を確認。198分・18:22取得の値が一致した。[free-public-json.json](verification-results/free-public-json.json)。
 - **Codex CloudのLinuxから、変更後のActions用Python入口を使って実取得を1回実行し、全5段階が成功した。** 実結果は2026-10-10T18:22:20+09:00、198分、数学2分・英語19分・国語100分・理科4分・社会73分。画面・API・教科合計を照合した。[free-live.json](verification-results/free-live.json)。公開用の履歴には必要な項目だけを追加し、GitHubの自動取得設定は未完了の表示を維持した。
 
 採用画像と最新のデスクトップ・スマホ画面を同時に確認し、ナビと本文の配置、合計と内訳の位置、文字の階層、教科の色、余白の5点を比較した。無料版では操作名を「表示を更新」へ変更し、取得準備の案内を追加した。198分・5教科・2件の履歴は実取得データであり、採用画像の162分をコピーした結果ではない。
+
+本番設定の外部読み取りもローカルworkerdで試した。Cloudflareが非対応の `redirect: error` を検出し、`manual` に修正して3xxは受理しないようにした。8件の関連テストとdry-runを再実行して成功。修正後のネイティブworkerdの外部HTTPSはGitHub・example.comの双方でタイムアウトした。環境プロキシ経由のPython HTTPSは200なので、この環境のworkerd外向き通信の制約として切り分けた。TLS検証は維持している。最新確認の失敗を案内しながら、同梱198分と元の取得日時を保持する動作を確認した。[free-worker-source.json](verification-results/free-worker-source.json)。公開Cloudflareでの外部読み取り成功はまだ確認していない。
 
 ## 未完了
 

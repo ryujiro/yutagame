@@ -12,7 +12,10 @@ const env = { RECORDS_URL: 'https://raw.githubusercontent.com/example/repo/main/
 const now = () => Date.parse('2026-10-10T19:30:00+09:00');
 
 test('公開JSONから新しい記録を読み、取得日時を読み込み時刻に置き換えない', async () => {
-  const data = await savedDashboard(env, async () => Response.json(source), now);
+  const data = await savedDashboard(env, async (_, options) => {
+    assert.equal(options.redirect, 'manual');
+    return Response.json(source);
+  }, now);
   assert.deepEqual(data.record, record);
   assert.equal(data.refresh_mode, 'saved_records');
   assert.equal(data.last_collection_attempt, record.fetched_at);
@@ -30,6 +33,9 @@ test('不一致の合計・教科と過大な応答を受理しない', async ()
     assert.deepEqual(data.record, fallback);
     assert.ok(data.error);
   }
+  const redirected = await savedDashboard(env, async () => new Response(null, { status: 302, headers: { Location: 'https://example.com' } }), now);
+  assert.deepEqual(redirected.record, fallback);
+  assert.ok(redirected.error);
 });
 test('CDNの古い記録で同梱記録を巻き戻さない', async () => {
   const old = { ...source, last_attempt: '2026-10-10T15:00:00+09:00', history: [{ ...record, fetched_at: '2026-10-10T15:00:00+09:00' }] };

@@ -1,0 +1,25 @@
+{
+  "method": "local workerd with production RECORDS_URL; not deployed Cloudflare",
+  "status": 200,
+  "record": {
+    "date": "2026-10-10",
+    "total_minutes": 198,
+    "subjects": {
+      "数学": 2,
+      "英語": 19,
+      "国語": 100,
+      "理科": 4,
+      "社会": 73
+    },
+    "fetched_at": "2026-10-10T18:22:20+09:00"
+  },
+  "source_error": {
+    "title": "最新の保存記録を確認できませんでした",
+    "message": "保存された記録を表示しています。時間をおいて表示を更新してください。",
+    "stage": "connection"
+  },
+  "collection_status": "not_configured",
+  "elapsed_seconds": 5.07,
+  "external_source_verified": false,
+  "diagnosis": "Native workerd outbound HTTPS to raw.githubusercontent.com and example.com timed out. Environment-proxied Python HTTPS succeeded. Public Cloudflare Worker fetch remains unverified."
+}

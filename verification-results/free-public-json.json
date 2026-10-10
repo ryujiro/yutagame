@@ -1,0 +1,18 @@
+{
+  "status": 200,
+  "url": "https://raw.githubusercontent.com/ryujiro/yutagame/main/public-data/dashboard.json",
+  "record": {
+    "date": "2026-10-10",
+    "total_minutes": 198,
+    "subjects": {
+      "数学": 2,
+      "英語": 19,
+      "国語": 100,
+      "理科": 4,
+      "社会": 73
+    },
+    "fetched_at": "2026-10-10T18:22:20+09:00"
+  },
+  "collection_status": "not_configured",
+  "authenticated_request": false
+}

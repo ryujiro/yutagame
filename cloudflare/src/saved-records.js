@@ -26,7 +26,8 @@ export async function savedDashboard(env = {}, fetcher = fetch, clock = Date.now
     try {
       const url = new URL(env.RECORDS_URL);
       if (url.protocol !== 'https:' || url.hostname !== 'raw.githubusercontent.com' || url.username || url.password || url.search) throw new Error('invalid_source');
-      const response = await fetcher(url.href, { redirect: 'error', signal: AbortSignal.timeout(6500) });
+      // workerdはredirect='error'に非対応。manualで3xxを受理せず止める。
+      const response = await fetcher(url.href, { redirect: 'manual', signal: AbortSignal.timeout(6500) });
       if (!response.ok) throw new Error('source_unavailable');
       const text = await response.text();
       if (text.length > 150000) throw new Error('source_too_large');
