@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, History, RefreshCw, ChevronRight, Info, AlertCircle, ArrowLeft, Coins } from 'lucide-react';
+import { BookOpen, History, RefreshCw, ChevronRight, Info, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useDashboard } from './useDashboard.js';
 import { TimeBalance, TimeHistory } from './TimeLedger.jsx';
 
@@ -29,9 +29,7 @@ function Sidebar({ page, setPage }) {
     <nav aria-label="メインナビゲーション">
       <button className={`nav-item ${page === 'today' ? 'active' : ''}`} aria-current={page === 'today' ? 'page' : undefined} onClick={() => setPage('today')}><BookOpen aria-hidden="true" /><span>今日の学習</span></button>
       <button className={`nav-item ${page === 'history' ? 'active' : ''}`} aria-current={page === 'history' ? 'page' : undefined} onClick={() => setPage('history')}><History aria-hidden="true" /><span>取得履歴</span></button>
-      <button className={`nav-item ${page === 'ledger' ? 'active' : ''}`} aria-current={page === 'ledger' ? 'page' : undefined} onClick={() => setPage('ledger')}><Coins aria-hidden="true" /><span>時間の残高</span></button>
     </nav>
-    <p className="sidebar-caption">毎日のがんばりを、ひと目で。</p>
   </aside>;
 }
 
@@ -57,18 +55,6 @@ function Notice({ children, title, warning = false }) {
   </div>;
 }
 
-function Summary({ record, today }) {
-  const subjects = subjectsOf(record);
-  return <section className="summary-card" aria-labelledby="summary-title">
-    <h2 id="summary-title">合計学習時間</h2>
-    <div className="total"><span className="total-number">{record ? record.total_minutes : '—'}</span>{record && <span className="total-unit">分</span>}</div>
-    <p className="summary-description">{record?.date && record.date !== today ? '前回の学習を、ここに記録。' : '今日の学習を、ここに記録。'}</p>
-    {subjects.length > 0 && record.total_minutes > 0 ? <div className="segmented-bar" aria-hidden="true">
-      {subjects.map(subject => <span key={subject.name} style={{ backgroundColor: subject.color, width: `${subject.minutes / record.total_minutes * 100}%` }} />)}
-    </div> : <div className="empty-summary">{record ? record.subjects === null ? '教科別の情報は取得されていません' : 'まだ学習時間が記録されていません' : '更新すると、学習時間がここに表示されます'}</div>}
-  </section>;
-}
-
 function Subjects({ record }) {
   const subjects = subjectsOf(record);
   return <section className="subjects" aria-labelledby="subjects-title">
@@ -77,7 +63,7 @@ function Subjects({ record }) {
       <span className="subject-name"><span className="subject-dot" style={{ backgroundColor: subject.color }} /><span>{subject.name}</span></span>
       <div className="subject-track" aria-hidden="true"><span style={{ backgroundColor: subject.color, width: `${record.total_minutes ? subject.minutes / record.total_minutes * 100 : 0}%` }} /></div>
       <span className="subject-time"><strong>{subject.minutes}</strong><span>分</span></span>
-    </li>)}</ul> : <div className="subjects-empty"><BookOpen size={32} aria-hidden="true" /><p>{record ? '教科別の情報は取得されていません。' : '取得した教科の内訳を表示します。'}</p></div>}
+    </li>)}</ul> : <div className="subjects-empty"><BookOpen size={32} aria-hidden="true" /><p>教科別の記録はありません。</p></div>}
   </section>;
 }
 
@@ -102,7 +88,7 @@ export default function App() {
   return <div className="app-shell">
     <Sidebar page={page} setPage={goTo} />
     <main id="main-content" className="main-content">
-      <header className="page-header"><div><h1 id="page-title">{page === 'ledger' ? '時間の残高' : page === 'history' ? '取得履歴' : pastDay ? '最近の学習' : '今日の学習'}</h1><p className="page-date">{page === 'ledger' ? '学習とPC時間の記録' : page === 'history' ? '保存された学習記録を振り返る' : data ? longDate(record?.date || data.today) : '学習記録を読み込んでいます'}</p></div><RefreshControl dashboard={dashboard} /></header>
+      <header className="page-header"><div><h1 id="page-title">{page === 'history' ? '取得履歴' : '今日の学習'}</h1><p className="page-date">{page === 'history' ? '' : data ? longDate(data.today) : '学習記録を読み込んでいます'}</p></div><RefreshControl dashboard={dashboard} /></header>
       <div className="announcements" aria-live="polite">
         {networkError && <Notice warning>{networkError}{!data && <button className="retry-link" onClick={reload}>もう一度読み込む</button>}</Notice>}
         {data?.error && <Notice warning title={data.error.title}>{data.error.message}{record && ' 前回の取得結果を表示しています。'}</Notice>}
@@ -111,7 +97,7 @@ export default function App() {
         {pastDay && page === 'today' && <Notice>前回取得した{shortDate(record.date)}の記録です。{data.refresh_mode === 'saved_records' ? '今日の記録が取得されると、表示を更新できます。' : '今日の記録は「学習時間を更新」から取得してください。'}</Notice>}
       </div>
       {loading && !data ? <div className="loading-state" role="status"><RefreshCw className="spinning" size={28} aria-hidden="true" /><p>学習記録を読み込んでいます…</p></div> : <>
-        {page === 'today' ? <><div className="learning-grid"><Summary record={record} today={data?.today} /><Subjects record={record} /></div><TimeBalance ledger={data?.ledger} error={data?.ledger_error} /><HistoryTable history={data?.history || []} onShowAll={() => goTo('history')} /></> : page === 'ledger' ? <><TimeBalance ledger={data?.ledger} error={data?.ledger_error} /><TimeHistory ledger={data?.ledger} /></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /></>}
+        {page === 'today' ? <><TimeBalance ledger={data?.ledger} error={data?.ledger_error} record={record} today={data?.today} /><div className="learning-details"><Subjects record={record?.date===data?.today ? record : null} /></div></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /><TimeHistory ledger={data?.ledger} /></>}
       </>}
     </main>
   </div>;

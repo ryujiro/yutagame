@@ -1,6 +1,7 @@
 import { savedDashboard } from './saved-records.js';
 import { familySafetyApi, ledgerDashboard, importLearning } from './family-safety.js';
 import { manualLearning } from './manual-learning.js';
+import { recentBalance } from './balance.js';
 
 function json(value, status = 200) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
@@ -35,7 +36,10 @@ export default {
           }
         }
         if (env.LEDGER_DB) {
-          try { dashboard.ledger = await ledgerDashboard(env.LEDGER_DB,dashboard.history); }
+          try {
+            dashboard.ledger = await ledgerDashboard(env.LEDGER_DB,dashboard.history);
+            dashboard.ledger.recent = recentBalance(dashboard.ledger);
+          }
           catch { dashboard.ledger_error = '時間の記録を読み込めませんでした。'; }
         }
         response = json(dashboard,status);
