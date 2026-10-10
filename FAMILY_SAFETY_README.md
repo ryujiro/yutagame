@@ -1,5 +1,15 @@
 # Family Safetyの時間記録
 
+## 学習の手動更新（2026-10-11追加）
+
+「学習時間を更新」は `/api/refresh` にPOSTし、Cloudflare Browser Runからみまもるネットへ正規ログインして今日の学習を取得する。GET/画面読み込みではログインしない。取得値はDOMと記録APIを照合し、D1の同日最新合計にも保存。失敗時は前回記録を維持し、ログインの自動再試行はしない。
+
+必要: `BROWSER` binding、`@cloudflare/playwright` 1.3.6、migration `0002_manual_learning.sql`、Worker secrets `SMILE_ZEMI_LOGIN_ID` / `SMILE_ZEMI_PASSWORD`。`tools/configure-smile-secrets.ps1 -ResultFile <結果JSONの場所>` の別ウィンドウで入力し、EnterでID確定、パスワード入力後Enterで保存。パスワードは表示しない。結果JSONは成功可否だけで、ID/PWを書かない。
+
+10分間隔、1日5回まで。別Worker間の同時要求もD1の予約で排他制御。無料のBrowser Run枠にも利用上限があり、アカウント全体の枠を使い切ると取得は失敗する。有料プランへの変更はしていない。[Cloudflare料金・上限](https://developers.cloudflare.com/browser-run/pricing/)。
+
+閲覧ログインは追加していないため、URLを知る人は記録閲覧と手動取得を実行可能。別サイトのブラウザからのPOSTはOriginと専用ヘッダーで拒否するが、この確認は閲覧者認証ではない。
+
 ## 構成
 
 既存のReact画面・Workers・GitHub公開学習記録を維持し、新しいD1 `manabi-time-ledger` を追加。Microsoft認証情報は取得・保存しない。Windows側は別プロジェクトM5timeの独立した `M5time.ManabiBridge` がローカルログを読み、1分ごとの専用タスクで送信する。M5Stack側には変更なし。

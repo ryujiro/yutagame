@@ -1,5 +1,6 @@
 import { savedDashboard } from './saved-records.js';
 import { familySafetyApi, ledgerDashboard, importLearning } from './family-safety.js';
+import { manualLearning } from './manual-learning.js';
 
 function json(value, status = 200) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
@@ -20,13 +21,24 @@ export default {
         const [status, body] = await familySafetyApi(request,env,url.pathname);
         response = json(body,status);
       }
-      else if (url.pathname === '/api/dashboard' && request.method === 'GET') {
-        const dashboard = await savedDashboard(env);
+      else if ((url.pathname === '/api/dashboard' && request.method === 'GET') || (url.pathname === '/api/refresh' && request.method === 'POST' && env.BROWSER && env.LEDGER_DB)) {
+        let dashboard = await savedDashboard(env), status=200;
+        if (env.BROWSER && env.LEDGER_DB) {
+          if (request.method==='POST' && (request.headers.get('Origin')!==url.origin || request.headers.get('X-Learning-Request')!=='1')) return json({message:'forbidden'},403);
+          try {
+            const learning=await manualLearning(env,dashboard);
+            if (request.method==='POST') [status,dashboard]=await learning.refresh();
+            else dashboard=learning.snapshot();
+          } catch {
+            dashboard={...dashboard,request_message:'最新記録の取得処理を利用できませんでした。前回の記録を表示しています。'};
+            if (request.method==='POST') status=503;
+          }
+        }
         if (env.LEDGER_DB) {
           try { dashboard.ledger = await ledgerDashboard(env.LEDGER_DB,dashboard.history); }
           catch { dashboard.ledger_error = '時間の記録を読み込めませんでした。'; }
         }
-        response = json(dashboard);
+        response = json(dashboard,status);
       }
       else if (url.pathname.startsWith('/api/')) response = json({ message: 'not_found' }, 404);
       else response = await env.ASSETS.fetch(request);

@@ -21,10 +21,9 @@ test('時間残高の画面とナビゲーション（実ブラウザ・合成�
       await page.getByRole('heading',{name:'PC時間の付与履歴'}).waitFor();
       if (process.env.LEDGER_EXPECT_LIVE === '1') {
         const data=await (await page.request.get(`${process.env.LEDGER_UI_URL}/api/dashboard`)).json();
-        assert.equal(data.ledger.total_learning_minutes,198);
-        assert.equal(data.ledger.total_granted_minutes,210);
-        assert.equal(data.ledger.grant_history.length,31);
-        assert.equal(await page.locator('.ledger-status.confirmed').count(),3);
+        assert.equal(await page.locator('.ledger-totals dd').nth(2).innerText(),`${data.ledger.total_learning_minutes} 分`);
+        assert.equal(await page.locator('.ledger-totals dd').nth(3).innerText(),`${data.ledger.total_granted_minutes} 分`);
+        assert.equal(await page.locator('.ledger-status.confirmed').count(),data.ledger.grant_history.filter(e=>e.confirmation_status==='confirmed').length);
         const denied=await page.request.post(`${process.env.LEDGER_UI_URL}/api/family-safety/events`,{data:{}});
         assert.equal(denied.status(),401);
         await page.screenshot({path:join(directory,`live-${width}.png`),fullPage:false});
