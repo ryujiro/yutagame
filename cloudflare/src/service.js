@@ -1,9 +1,10 @@
 import { cleanRecord, STAGES, REQUIRED_ENV, isoJst, todayJst, LearningError, errorMessage } from './learning.js';
 
 export class LearningService {
-  constructor(storage, env, seed, fetcher, clock = Date.now) {
+  constructor(storage, env, seed, fetcher, clock = Date.now, { refreshIntervalMs = 600000 } = {}) {
     this.storage = storage; this.env = env; this.seed = seed; this.fetcher = fetcher; this.clock = clock;
     this.busy = false; this.state = null;
+    this.refreshIntervalMs = refreshIntervalMs;
   }
   async initialize() {
     const stored = await this.storage.get('dashboard');
@@ -17,8 +18,8 @@ export class LearningService {
     } catch { this.state = fallback; }
   }
   snapshot() {
-    const now = this.clock(), next = this.state.lastAttempt == null ? 0 : this.state.lastAttempt + 600000;
-    const remaining = Math.max(0, Math.ceil((next - now) / 1000));
+    const now = this.clock(), next = this.state.lastAttempt == null ? 0 : this.state.lastAttempt + this.refreshIntervalMs;
+    const remaining = this.refreshIntervalMs ? Math.max(0, Math.ceil((next - now) / 1000)) : 0;
     const missing = REQUIRED_ENV.filter(name => !this.env[name]);
     return { record: this.state.history[0] || null, history: this.state.history,
       today: todayJst(now), server_time: isoJst(now), refreshing: this.busy,

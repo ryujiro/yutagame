@@ -6,7 +6,7 @@
 
 必要: `BROWSER` binding、`@cloudflare/playwright` 1.3.6、migration `0002_manual_learning.sql`、Worker secrets `SMILE_ZEMI_LOGIN_ID` / `SMILE_ZEMI_PASSWORD`。`tools/configure-smile-secrets.ps1 -ResultFile <結果JSONの場所>` の別ウィンドウで入力し、EnterでID確定、パスワード入力後Enterで保存。パスワードは表示しない。結果JSONは成功可否だけで、ID/PWを書かない。
 
-10分間隔、1日5回まで。別Worker間の同時要求もD1の予約で排他制御。無料のBrowser Run枠にも利用上限があり、アカウント全体の枠を使い切ると取得は失敗する。有料プランへの変更はしていない。[Cloudflare料金・上限](https://developers.cloudflare.com/browser-run/pricing/)。
+アプリ独自の取得間隔・1日回数制限はありません。取得終了後はすぐ次の手動更新ができます。別Worker間の同時要求だけはD1の予約で排他制御します。古い待ち時間・取得回数は制限に使いません。無料のBrowser Run枠にも利用上限があり、アカウント全体の枠を使い切ると取得は失敗する。有料プランへの変更はしていない。[Cloudflare料金・上限](https://developers.cloudflare.com/browser-run/pricing/)。
 
 閲覧ログインは追加していないため、URLを知る人は記録閲覧と手動取得を実行可能。別サイトのブラウザからのPOSTはOriginと専用ヘッダーで拒否するが、この確認は閲覧者認証ではない。
 

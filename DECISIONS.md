@@ -1,5 +1,9 @@
 # 設計上の決定
 
+## 2026-10-11: 手動更新の待ち時間・回数制限を撤廃
+
+保護者の明示的な依頼を受け、本番の手動取得に限ってLearningServiceの取得間隔を0に設定し、D1の回数・時刻チェックを除去。画面/APIはretry_after_seconds=0、next_refresh_at=nullを返す。旧状態を消さず無視するため、DBの履歴や認証の変更・追加migrationは不要。同時実行の排他、ブラウザの110秒終了、失敗時の前回値保持、自動再試行なしは維持。古いローカル実行方式の既定間隔は変更しない。提供元自体の認証制限・利用枠は撤廃できず、有料プラン変更は行わない。
+
 ## 2026-10-11: ボタンからログインして最新学習を取得
 
 既存の `LearningService` と画面操作・DOM/API照合付き `fetchTodayLearningTime` を再利用し、Cloudflare Browser Runの専用bindingからPlaywrightを起動する。GETはログインしない。ボタンの同一オリジンPOSTだけで取得し、Worker secretのログイン情報を利用する。Microsoft/M5Stack認証とは完全に別。
