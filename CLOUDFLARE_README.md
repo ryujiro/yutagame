@@ -2,6 +2,12 @@
 
 Cloudflare Workers Freeでスマホ向けのサイトを表示し、GitHub ActionsのPython + Playwrightで学習時間を取得します。有料Browser Rendering、Durable Objects、Cloudflare APIトークンは使いません。閲覧用のログインはありません。
 
+## 公開済みのサイト
+
+**https://manabi-note.family-dashboard.workers.dev/**
+
+2026-10-10 20:13（日本時間）に公開サイトのHTML・health・dashboardのHTTP200、スマホ幅390/320での表示を確認しました。現在の198分は18:22の保存済み実記録です。次は下の「自動取得を設定する」を行います。
+
 ## まずサイトを公開する
 
 [Cloudflareの公開画面を開く](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fryujiro%2Fyutagame)
@@ -63,4 +69,4 @@ XDG_CONFIG_HOME=/workspace/yutagame/.local/wrangler-config WRANGLER_SEND_METRICS
 
 `cloudflare/src/fetch-smile.js` と `service.js` は以前の実装の検証用として残していますが、無料Workerには読み込まれません。Cloudflare公式Playwrightの依存、Browser binding、Durable Object binding、マイグレーション、必須シークレットは公開設定から削除しました。
 
-CloudflareとGitHubの無料利用枠の範囲で利用します。無料枠を超えた場合に有料へ自動移行する設定は追加していません。GitHub Actionsの実行・Cloudflare公開URLの確認は、本人の接続とシークレット設定後に行います。[検証レポート](CLOUDFLARE_VERIFICATION_REPORT.md)を参照してください。
+CloudflareとGitHubの無料利用枠の範囲で利用します。無料枠を超えた場合に有料へ自動移行する設定は追加していません。Cloudflare公開URLは確認済みです。GitHub Actionsでの実取得は、本人のシークレット設定後に確認します。[検証レポート](CLOUDFLARE_VERIFICATION_REPORT.md)を参照してください。

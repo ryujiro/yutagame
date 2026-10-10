@@ -14,13 +14,22 @@
 
 採用画像と最新のデスクトップ・スマホ画面を同時に確認し、ナビと本文の配置、合計と内訳の位置、文字の階層、教科の色、余白の5点を比較した。無料版では操作名を「表示を更新」へ変更し、取得準備の案内を追加した。198分・5教科・2件の履歴は実取得データであり、採用画像の162分をコピーした結果ではない。
 
-本番設定の外部読み取りもローカルworkerdで試した。Cloudflareが非対応の `redirect: error` を検出し、`manual` に修正して3xxは受理しないようにした。8件の関連テストとdry-runを再実行して成功。修正後のネイティブworkerdの外部HTTPSはGitHub・example.comの双方でタイムアウトした。環境プロキシ経由のPython HTTPSは200なので、この環境のworkerd外向き通信の制約として切り分けた。TLS検証は維持している。最新確認の失敗を案内しながら、同梱198分と元の取得日時を保持する動作を確認した。[free-worker-source.json](verification-results/free-worker-source.json)。公開Cloudflareでの外部読み取り成功はまだ確認していない。
+本番設定の外部読み取りもローカルworkerdで試した。Cloudflareが非対応の `redirect: error` を検出し、`manual` に修正して3xxは受理しないようにした。8件の関連テストとdry-runを再実行して成功。修正後のネイティブworkerdの外部HTTPSはGitHub・example.comの双方でタイムアウトした。環境プロキシ経由のPython HTTPSは200なので、この環境のworkerd外向き通信の制約として切り分けた。TLS検証は維持している。最新確認の失敗を案内しながら、同梱198分と元の取得日時を保持する動作を確認した。[free-worker-source.json](verification-results/free-worker-source.json)。この確認時点では公開Cloudflareの動作は未確認だった。後述の公開URL確認ではエラーなしで記録を読み込めた。
 
-## 未完了
+## 公開URLの確認（2026-10-10 20:13、日本時間）
 
-Cloudflareへの公開と発行URL、ユーザーのGitHubシークレット設定、GitHub-hosted runnerからの実認証とJSONの更新、公開URLから新しい値が読めることは未検証。Codex Cloudでの実取得成功をGitHub Actionsの成功と混同しない。ログインの安定性も継続検証が必要。
+ユーザーがCloudflareでGitHub接続とデプロイを実施し、画面の全工程が成功していることを確認した。公開先は **https://manabi-note.family-dashboard.workers.dev/**。
 
-次は無料版の公開画面を開き直してGitHubと接続し、サイトを公開する。その後、元リポジトリryujiro/yutagameのGitHub Actions SecretsにID・パスワードを本人が設定し、手動実行を1回確認する。サイトの「表示を更新」は保存済みJSONのGETであり、ブラウザ上で認証はしない。
+- 公開サイトのHTML、health、dashboardをHTTPS GETで確認し、すべてHTTP200。閲覧用のログイン不要。
+- APIは保存済みの198分と2026-10-10T18:22:20+09:00の取得日時を返し、最新保存記録の確認エラーはnull。[cloudflare-public.json](verification-results/cloudflare-public.json)。
+- 公開URLを実Chromiumで読み、1440×1000、390×844、320×844の画面、履歴移動、GETによる表示更新、例外0件を確認。状態のテストには応答を模擬し、みまもるネットの認証は0回。画面10項目が成功。[cloudflare-public-browser.json](verification-results/cloudflare-public-browser.json)。
+- 公開URLのTLS検証は既存CAと環境プロキシを使い、無効化していない。画面検査スクリプトを単体で実行した最初の試行はPythonのimport経路不足で停止したため、リポジトリルートを明示して修正し、再実行が成功した。
+
+## まだ必要な設定
+
+GitHub側の取得設定は `collection_status=not_configured`。ユーザーのGitHubシークレット設定、GitHub-hosted runnerからの実認証・JSON更新、公開URLから新たな取得値が読めることは未検証。現在の198分はCodex Cloudで18:22に実取得した保存記録であり、GitHub Actionsによる新規取得ではない。
+
+次は元リポジトリryujiro/yutagameのGitHub Actions SecretsにSMILE_ZEMI_LOGIN_ID・SMILE_ZEMI_PASSWORDを本人が入力する。その後「学習時間を取得」をmainで1回実行し、ログイン・抽出・JSON更新・サイトへの反映を確認する。シークレットの値をチャットで受け取らない。
 
 ---
 

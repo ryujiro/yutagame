@@ -3,9 +3,12 @@ import asyncio
 import copy
 import json
 import os
+import sys
 from pathlib import Path
 from datetime import date, timedelta
 from playwright.async_api import async_playwright, expect
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from smile_zemi import launch_options, install_verified_transport
 
 BASE = os.environ.get("MANABI_WEB_URL", "http://127.0.0.1:8000")
 
@@ -13,8 +16,13 @@ BASE = os.environ.get("MANABI_WEB_URL", "http://127.0.0.1:8000")
 async def main():
     checks = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(executable_path="/usr/bin/chromium", args=["--no-sandbox", "--disable-dev-shm-usage"])
-        page = await browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
+        options = launch_options() if BASE.startswith('https://') else {'executable_path': '/usr/bin/chromium'}
+        browser = await p.chromium.launch(**options, args=["--no-sandbox", "--disable-dev-shm-usage"])
+        context = await browser.new_context(viewport={"width": 1440, "height": 1000}, device_scale_factor=1, locale='ja-JP', timezone_id='Asia/Tokyo')
+        if BASE.startswith('https://'):
+            # 公開ダッシュボードのGETのみ。既存CAでTLSを検証し、認証情報は渡さない。
+            await install_verified_transport(context)
+        page = await context.new_page()
         errors = []
         page.on("pageerror", lambda error: errors.append(type(error).__name__))
         real_state = await (await page.request.get(BASE + '/api/dashboard')).json()
@@ -113,7 +121,7 @@ async def main():
         checks.append('ブラウザのJavaScript例外0件')
         await browser.close()
     result = {'method': 'local Playwright Chromium', 'base_url': BASE, 'desktop_viewport': [1440, 1000], 'mobile_viewports': [[390, 844], [320, 844]], 'checks': checks, 'live_authentication_attempts': 0}
-    output = 'web-browser.json' if BASE == 'http://127.0.0.1:8000' else 'cloudflare-browser.json'
+    output = 'cloudflare-public-browser.json' if BASE.startswith('https://') else 'web-browser.json' if BASE == 'http://127.0.0.1:8000' else 'cloudflare-browser.json'
     Path('verification-results', output).write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps(result, ensure_ascii=False))
 

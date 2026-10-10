@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-10-10T20:13:56+09:00",
+  "base_url": "https://manabi-note.family-dashboard.workers.dev",
+  "method": "public HTTPS GET; no viewer authentication",
+  "checks": {
+    "/": {
+      "http_status": 200
+    },
+    "/api/health": {
+      "status": "ok",
+      "mode": "saved_records",
+      "http_status": 200
+    },
+    "/api/dashboard": {
+      "record": {
+        "date": "2026-10-10",
+        "total_minutes": 198,
+        "subjects": {
+          "数学": 2,
+          "英語": 19,
+          "国語": 100,
+          "理科": 4,
+          "社会": 73
+        },
+        "fetched_at": "2026-10-10T18:22:20+09:00"
+      },
+      "collection_status": "not_configured",
+      "error": null,
+      "refresh_mode": "saved_records",
+      "http_status": 200
+    }
+  },
+  "github_actions_collection_verified": false
+}
