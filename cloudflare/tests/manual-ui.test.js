@@ -25,10 +25,10 @@ test('更新ボタン→POST→ログイン取得結果を表示（実画面・�
         const minutes=6+posts;
         const fresh={date:'2026-10-11',total_minutes:minutes,subjects:{数学:minutes},fetched_at:`2026-10-11T10:00:0${posts}+09:00`};
         await route.fulfill({json:{...body,record:fresh,history:[fresh,...body.history],retry_after_seconds:0,next_refresh_at:null,refreshing:false,
-          ledger:{...body.ledger,today_learning_minutes:minutes,total_learning_minutes:198+minutes}}});
+          ledger:{...body.ledger,recent:{...body.ledger?.recent,today_learning_minutes:minutes,total_learning_minutes:198+minutes}}}});
       });
       await page.goto(process.env.LEDGER_UI_URL);
-      await page.getByRole('heading',{name:'合計学習時間'}).waitFor();
+      await page.getByRole('heading',{name:'今日の学習時間'}).waitFor();
       await page.getByRole('button',{name:'学習時間を更新',exact:true}).click();
       await started;assert.equal(await page.getByRole('button',{name:'取得中',exact:false}).isDisabled(),true);release();
       await page.locator('.total-number').getByText('7',{exact:true}).waitFor();
@@ -37,7 +37,7 @@ test('更新ボタン→POST→ログイン取得結果を表示（実画面・�
       await page.locator('.total-number').getByText('8',{exact:true}).waitFor();
       assert.equal(posts,2);assert.equal(await page.getByRole('button',{name:'学習時間を更新',exact:true}).isEnabled(),true);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
-      await page.getByRole('button',{name:'時間の残高',exact:true}).click();
+      await page.getByRole('button',{name:'取得履歴',exact:true}).click();
       await page.getByRole('heading',{name:'PC時間の付与履歴'}).waitFor();
       await page.screenshot({path:join(directory,`refresh-${width}.png`),fullPage:false});
       await page.close();

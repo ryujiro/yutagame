@@ -159,4 +159,47 @@ td strong { font-weight: 500; }
   .notice { padding: 13px; font-size: 13px; gap: 9px; }
   .full-history { margin-top: 18px; }
 }
+.main-content { padding-top: 48px; }
+.page-header { margin-bottom: 26px; }
+h1 { font-size: 30px; letter-spacing: 0; }
+.page-date { font-size: 17px; }
+.brand, .sidebar-caption { letter-spacing: 0; }
+.nav-item, .refresh-button, .notice { border-radius: 8px; }
+.day-overview { padding-block: 24px; border-block: 1px solid #e5e9ef; }
+.overview-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; }
+.overview-metric { min-width: 0; }
+.overview-metric h2 { font-size: 17px; font-weight: 550; color: #57647a; }
+.day-overview .total, .day-overview .ledger-balance { margin-top: 14px; min-height: 66px; gap: 8px; }
+.day-overview .total-number, .day-overview .ledger-balance strong { font-size: 56px; line-height: 1.1; letter-spacing: 0; font-family: 'Inter',Arial,sans-serif; font-variant-numeric: tabular-nums; }
+.day-overview .total-unit, .day-overview small { font-size: 18px; }
+.day-overview .ledger-balance strong.negative { color: #b42318; }
+.day-overview .ledger-balance strong.compact-amount { font-size: 40px; overflow-wrap: anywhere; }
+.balance-period { font-size: 13px; color: #64748b; margin-top: 6px; }
+.day-overview .ledger-totals { grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 24px; padding-top: 18px; border-top: 1px solid #edf0f4; }
+.day-overview .ledger-totals dd { font-size: 22px; }
+.learning-details { padding-top: 28px; max-width: 680px; }
+.learning-details .subjects h2, .ledger-history h2 { font-size: 18px; letter-spacing: 0; }
+.learning-details .subject-list { margin-top: 18px; gap: 18px; }
+.learning-details .subject-name { font-size: 17px; }
+.learning-details .subject-time strong { font-size: 22px; }
+.learning-details .subjects-empty { min-height: 100px; font-size: 14px; }
+@media (max-width: 900px) { .main-content { padding-top: 28px; } }
+@media (max-width: 600px) {
+  .sidebar { padding-top: 18px; }
+  .sidebar nav { margin-top: 16px; }
+  .nav-item { padding: 10px; font-size: 14px; }
+  .main-content { padding: 24px 18px; }
+  .refresh-control { margin-top: 16px; }
+  .day-overview { padding-block: 20px; }
+  .overview-metrics { gap: 16px; }
+  .overview-metric h2 { font-size: 14px; }
+  .day-overview .total-number, .day-overview .ledger-balance strong { font-size: 40px; }
+  .day-overview .ledger-balance strong.compact-amount { font-size: 28px; }
+  .day-overview .total, .day-overview .ledger-balance { min-height: 48px; }
+  .balance-period { font-size: 11px; line-height: 1.6; }
+  .day-overview .total-unit, .day-overview small { font-size: 14px; }
+  .day-overview .ledger-totals dt { font-size: 12px; }
+  .day-overview .ledger-totals dd { font-size: 20px; }
+  .learning-details .subject-row { grid-template-columns: 75px minmax(25px,1fr) 48px; gap: 10px; }
+}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition: none !important; scroll-behavior: auto !important; } }

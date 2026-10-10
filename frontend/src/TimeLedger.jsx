@@ -1,22 +1,22 @@
-import { AlertCircle, Coins } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 const time = value => new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo', hourCycle: 'h23' }).format(new Date(value));
 function Amount({ value }) { return <>{value == null ? '—' : value}<small>{value == null ? '' : ' 分'}</small></>; }
-export function TimeBalance({ ledger, error }) {
-  if (!ledger) return <section className="time-ledger"><h2><Coins size={21} />時間の残高</h2><p className="ledger-note">{error || 'PCの時間記録はまだ接続されていません。'}</p></section>;
-  const rows = [
-    ['今日の学習',ledger.today_learning_minutes], ['今日の付与（確認済み）',ledger.today_granted_minutes],
-    ['累計学習',ledger.total_learning_minutes], ['累計付与（確認済み）',ledger.total_granted_minutes],
-  ];
-  return <section className="time-ledger" aria-label="学習とPC時間の残高">
-    <h2><Coins size={21} />時間の残高</h2>
-    <div className="ledger-balance"><span>利用可能な残高</span><strong><Amount value={ledger.balance_minutes} /></strong></div>
-    <dl className="ledger-totals">{rows.map(([label,value]) => <div key={label}><dt>{label}</dt><dd><Amount value={value} /></dd></div>)}</dl>
-    {ledger.pending_count > 0 && <p className="ledger-pending"><AlertCircle size={18} /><span>付与{ledger.pending_count}件が要確認です。</span></p>}
-    {ledger.confirmed_balance_minutes != null && <p className="ledger-note">保存済み学習 − 確認済み付与：{ledger.confirmed_balance_minutes}分</p>}
-    {ledger.missing_learning_days?.length > 0 && <p className="ledger-note">学習記録がない日が{ledger.missing_learning_days.length}日あります。過去の持ち越し残高は未確定です。</p>}
-    {ledger.integration_status !== 'connected' && <p className="ledger-note">{ledger.integration_status === 'stale' ? 'PCの最新記録を確認できていません。' : 'PCからの記録を待っています。'}</p>}
-    <p className="ledger-note">記録が残っている期間の集計{ledger.coverage_start ? `（学習：${ledger.coverage_start}から）` : ''}。未確認の付与は累計に含まれていません。</p>
+export function TimeBalance({ ledger, error, record, today }) {
+  const recent=ledger?.recent;
+  const learned=recent?.today_learning_minutes ?? (record?.date===today ? record.total_minutes : null);
+  const date=value=>value ? value.slice(5).replace('-','/') : '';
+  return <section className="day-overview" aria-label="今日の学習と時間の残高">
+    <div className="overview-metrics">
+      <div className="overview-metric"><h2>今日の学習時間</h2><div className="total"><span className="total-number">{learned ?? '—'}</span>{learned!=null && <span className="total-unit">分</span>}</div></div>
+      <div className="overview-metric"><h2>時間の残高</h2><div className="ledger-balance"><strong className={`${recent?.balance_minutes<0 ? 'negative' : ''} ${String(recent?.balance_minutes ?? '').length>5 ? 'compact-amount' : ''}`}><Amount value={recent?.balance_minutes} /></strong></div><p className="balance-period">昨日・今日 {recent ? `（${date(recent.window_start)}・${date(recent.window_end)}）` : ''}</p></div>
+    </div>
+    {recent ? <>
+      <dl className="ledger-totals"><div><dt>2日分の学習</dt><dd><Amount value={recent.total_learning_minutes} /></dd></div><div><dt>2日分の付与（確認済み）</dt><dd><Amount value={recent.total_granted_minutes} /></dd></div></dl>
+      {recent.pending_count>0 && <p className="ledger-pending"><AlertCircle size={18}/><span>昨日・今日の付与{recent.pending_count}件が未確認です。</span></p>}
+      {recent.missing_learning_days.length>0 && <p className="ledger-note">{recent.missing_learning_days.map(date).join('・')}の学習記録が未取得です。</p>}
+      {recent.integration_status!=='connected' && <p className="ledger-note">PCの最新記録を確認できていません。</p>}
+    </> : <p className="ledger-note">{error || 'PCの時間記録はまだ接続されていません。'}</p>}
   </section>;
 }
 export function TimeHistory({ ledger }) {
