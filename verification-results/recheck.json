@@ -1,0 +1,19 @@
+{
+  "cli_exit_code": 2,
+  "stderr_present": false,
+  "result": {
+    "status": "not_acquired",
+    "checked_at": "2026-10-10T16:05:18+09:00",
+    "stages": {
+      "connection": "passed",
+      "login_page": "passed",
+      "authentication": "passed",
+      "records_page": "passed",
+      "extraction": "failed"
+    },
+    "error": {
+      "stage": "extraction",
+      "code": "verified_timeline_response_missing"
+    }
+  }
+}

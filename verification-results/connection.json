@@ -1,0 +1,24 @@
+{
+  "status": "login_page_loaded",
+  "checked_at": "2026-10-10T08:15:48+09:00",
+  "stages": {
+    "connection": "passed",
+    "login_page": "passed",
+    "authentication": "unverified",
+    "records_page": "unverified",
+    "extraction": "unverified"
+  },
+  "visible_control_counts": {
+    "input[type=\"email\"]": 1,
+    "input[type=\"text\"]": 0,
+    "input[type=\"password\"]": 1,
+    "button[type=\"submit\"]": 0,
+    "input[type=\"submit\"]": 0
+  },
+  "confirmed_login_selector_counts": {
+    "input[type=\"email\"][name=\"userId\"]": 1,
+    "input[type=\"password\"][name=\"password\"]": 1,
+    "role=button[name=\"ログイン\"]": 1
+  },
+  "manual_challenge_detected": false
+}

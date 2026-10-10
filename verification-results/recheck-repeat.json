@@ -1,0 +1,19 @@
+{
+  "cli_exit_code": 2,
+  "stderr_present": false,
+  "result": {
+    "status": "not_acquired",
+    "checked_at": "2026-10-10T16:08:05+09:00",
+    "stages": {
+      "connection": "passed",
+      "login_page": "passed",
+      "authentication": "failed",
+      "records_page": "unverified",
+      "extraction": "unverified"
+    },
+    "error": {
+      "stage": "authentication",
+      "code": "login_rejected_no_automatic_retry"
+    }
+  }
+}

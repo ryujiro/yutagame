@@ -1,0 +1,11 @@
+{
+  "checked_at": "2026-10-10T15:37:40+09:00",
+  "probe": "authentication_host_without_credentials",
+  "http_status": 200,
+  "credentials_sent": false,
+  "secret_destination_configuration": {
+    "SMILE_ZEMI_LOGIN_ID": ["smile-zemi.jp"],
+    "SMILE_ZEMI_PASSWORD": ["smile-zemi.jp"]
+  },
+  "authentication": "not_attempted_pending_secret_destination_update"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "manabi-note",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {"dev": "vite --host 127.0.0.1", "build": "vite build", "preview": "vite preview --host 127.0.0.1"},
+  "dependencies": {"react": "19.3.0", "react-dom": "19.3.0", "lucide-react": "1.55.0"},
+  "devDependencies": {"vite": "8.3.4", "@vitejs/plugin-react": "6.1.2"}
+}

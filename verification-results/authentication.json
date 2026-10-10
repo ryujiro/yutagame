@@ -1,0 +1,15 @@
+{
+  "status": "not_acquired",
+  "checked_at": "2026-10-10T08:39:56+09:00",
+  "stages": {
+    "connection": "passed",
+    "login_page": "passed",
+    "authentication": "failed",
+    "records_page": "unverified",
+    "extraction": "unverified"
+  },
+  "error": {
+    "stage": "authentication",
+    "code": "authentication_host_access_denied"
+  }
+}

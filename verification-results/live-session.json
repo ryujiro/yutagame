@@ -1,0 +1,17 @@
+{
+  "status": "acquired",
+  "checked_at": "2026-10-10T15:54:24+09:00",
+  "stages": {
+    "connection": "passed",
+    "login_page": "passed",
+    "authentication": "passed",
+    "records_page": "passed",
+    "extraction": "passed"
+  },
+  "login_http_status": 200,
+  "child_count": 1,
+  "course": "chu",
+  "screen_api_consistency": "passed",
+  "method": "real_authenticated_browser_session_and_extract_chu_today",
+  "fresh_cli_success": "not_confirmed"
+}

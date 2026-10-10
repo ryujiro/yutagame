@@ -1,0 +1,29 @@
+{
+  "/": {
+    "status": 200,
+    "content_type": "text/html; charset=utf-8"
+  },
+  "/api/health": {
+    "status": 200,
+    "content_type": "application/json; charset=utf-8"
+  },
+  "/api/dashboard": {
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "record": {
+      "date": "2026-10-10",
+      "total_minutes": 162,
+      "subjects": {
+        "数学": 2,
+        "国語": 83,
+        "理科": 4,
+        "社会": 73
+      },
+      "fetched_at": "2026-10-10T16:07:15+09:00"
+    },
+    "credentials_ready": false
+  },
+  "cross_origin_post": {
+    "status": 403
+  }
+}

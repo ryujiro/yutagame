@@ -1,0 +1,31 @@
+{
+  "method": "real browser button -> FastAPI -> Playwright -> Smile Zemi",
+  "http_status": 502,
+  "record": {
+    "date": "2026-10-10",
+    "total_minutes": 162,
+    "subjects": {
+      "数学": 2,
+      "国語": 83,
+      "理科": 4,
+      "社会": 73
+    },
+    "fetched_at": "2026-10-10T16:07:15+09:00"
+  },
+  "verification_stages": {
+    "connection": "passed",
+    "login_page": "passed",
+    "authentication": "unverified",
+    "records_page": "unverified",
+    "extraction": "unverified"
+  },
+  "error": {
+    "title": "ログインを確認できませんでした",
+    "message": "時間をおいて更新してください。続く場合は、みまもるネットのログイン状態を確認してください。",
+    "stage": "authentication"
+  },
+  "immediate_second_request_status": 429,
+  "automatic_retries": 0,
+  "ui_total_matches_returned_record": true,
+  "ui_disabled_during_fetch": true
+}
