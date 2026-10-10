@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { BookOpen, History, RefreshCw, ChevronRight, Info, AlertCircle, ArrowLeft } from 'lucide-react';
+import { BookOpen, History, RefreshCw, ChevronRight, Info, AlertCircle, ArrowLeft, Coins } from 'lucide-react';
 import { useDashboard } from './useDashboard.js';
+import { TimeBalance, TimeHistory } from './TimeLedger.jsx';
 
 const COLORS = ['#777cf5', '#f19a85', '#91b8a0', '#e9be75', '#89b9d5', '#b7a0d6'];
 const ORDER = ['数学', '国語', '理科', '社会', '英語'];
@@ -28,6 +29,7 @@ function Sidebar({ page, setPage }) {
     <nav aria-label="メインナビゲーション">
       <button className={`nav-item ${page === 'today' ? 'active' : ''}`} aria-current={page === 'today' ? 'page' : undefined} onClick={() => setPage('today')}><BookOpen aria-hidden="true" /><span>今日の学習</span></button>
       <button className={`nav-item ${page === 'history' ? 'active' : ''}`} aria-current={page === 'history' ? 'page' : undefined} onClick={() => setPage('history')}><History aria-hidden="true" /><span>取得履歴</span></button>
+      <button className={`nav-item ${page === 'ledger' ? 'active' : ''}`} aria-current={page === 'ledger' ? 'page' : undefined} onClick={() => setPage('ledger')}><Coins aria-hidden="true" /><span>時間の残高</span></button>
     </nav>
     <p className="sidebar-caption">毎日のがんばりを、ひと目で。</p>
   </aside>;
@@ -100,7 +102,7 @@ export default function App() {
   return <div className="app-shell">
     <Sidebar page={page} setPage={goTo} />
     <main id="main-content" className="main-content">
-      <header className="page-header"><div><h1 id="page-title">{page === 'history' ? '取得履歴' : pastDay ? '最近の学習' : '今日の学習'}</h1><p className="page-date">{page === 'history' ? '保存された学習記録を振り返る' : data ? longDate(record?.date || data.today) : '学習記録を読み込んでいます'}</p></div><RefreshControl dashboard={dashboard} /></header>
+      <header className="page-header"><div><h1 id="page-title">{page === 'ledger' ? '時間の残高' : page === 'history' ? '取得履歴' : pastDay ? '最近の学習' : '今日の学習'}</h1><p className="page-date">{page === 'ledger' ? '学習とPC時間の記録' : page === 'history' ? '保存された学習記録を振り返る' : data ? longDate(record?.date || data.today) : '学習記録を読み込んでいます'}</p></div><RefreshControl dashboard={dashboard} /></header>
       <div className="announcements" aria-live="polite">
         {networkError && <Notice warning>{networkError}{!data && <button className="retry-link" onClick={reload}>もう一度読み込む</button>}</Notice>}
         {data?.error && <Notice warning title={data.error.title}>{data.error.message}{record && ' 前回の取得結果を表示しています。'}</Notice>}
@@ -109,7 +111,7 @@ export default function App() {
         {pastDay && page === 'today' && <Notice>前回取得した{shortDate(record.date)}の記録です。{data.refresh_mode === 'saved_records' ? '今日の記録が取得されると、表示を更新できます。' : '今日の記録は「学習時間を更新」から取得してください。'}</Notice>}
       </div>
       {loading && !data ? <div className="loading-state" role="status"><RefreshCw className="spinning" size={28} aria-hidden="true" /><p>学習記録を読み込んでいます…</p></div> : <>
-        {page === 'today' ? <><div className="learning-grid"><Summary record={record} today={data?.today} /><Subjects record={record} /></div><HistoryTable history={data?.history || []} onShowAll={() => goTo('history')} /></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /></>}
+        {page === 'today' ? <><div className="learning-grid"><Summary record={record} today={data?.today} /><Subjects record={record} /></div><TimeBalance ledger={data?.ledger} error={data?.ledger_error} /><HistoryTable history={data?.history || []} onShowAll={() => goTo('history')} /></> : page === 'ledger' ? <><TimeBalance ledger={data?.ledger} error={data?.ledger_error} /><TimeHistory ledger={data?.ledger} /></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /></>}
       </>}
     </main>
   </div>;
