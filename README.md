@@ -4,13 +4,13 @@
 
 **[Webサイトの設定・起動方法](WEB_README.md)** ／ **[Web版の実行結果](WEB_VERIFICATION_REPORT.md)**
 
-スマートフォンから開くための **[Cloudflare公開手順](CLOUDFLARE_README.md)** を追加しました。Workers + Browser Run + Durable Objectsで動作する構成です。ユーザーの希望に従い、閲覧ログインは設けません。[Cloudflare版の検証結果](CLOUDFLARE_VERIFICATION_REPORT.md)を参照してください。
+スマートフォンから開くための **[無料版のCloudflare公開手順](CLOUDFLARE_README.md)** を追加しました。Cloudflare Workersで表示し、GitHub ActionsのPython + Playwrightで日本時間15〜22時に取得します。有料Browser Rendering・Durable Objects・Cloudflareの認証情報は不要です。閲覧ログインは設けません。[無料版の検証結果](CLOUDFLARE_VERIFICATION_REPORT.md)を参照してください。
 
 ## Python取得処理の技術検証
 
 Codex Cloud の Python + Playwright から、実サイトへの接続・ログイン・中学生コースの日別学習記録取得に成功しました。記録APIの待ち合わせを修正後、引数なしの統合CLIで162分を取得し、画面の合計・教科別表示を照合しました。ただし、約1分後の新規ブラウザでの再実行は401で拒否されました。毎回安定して再認証できる状態とは確認できていません。[検証レポート](VERIFICATION_REPORT.md)を参照してください。
 
-以下はPython取得処理の説明です。定期実行・Family Safety連携は含みません。
+以下は元のPython技術検証の説明です。追加依頼による無料公開版ではGitHub Actionsによる定期取得を追加しました。Family Safety連携は含みません。
 
 ## インストール
 

@@ -4,44 +4,20 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from smile_zemi import JST, REQUIRED_ENV, STAGES, SUBJECT_NAMES, VerificationError, fetch_today_learning_time
+from smile_zemi import JST, REQUIRED_ENV, STAGES, VerificationError, fetch_today_learning_time
+from learning_records import clean_record
 
 ROOT = Path(__file__).resolve().parent
 COOLDOWN_SECONDS = 600
 
-
-def clean_record(value: Any) -> dict:
-    """保存するのは日付・分数・教科・取得日時だけ。"""
-    if not isinstance(value, dict):
-        raise ValueError("invalid_record")
-    day = value.get("date")
-    if not isinstance(day, str) or date.fromisoformat(day).isoformat() != day:
-        raise ValueError("invalid_date")
-    total = value.get("total_minutes")
-    if type(total) is not int or total < 0:
-        raise ValueError("invalid_minutes")
-    fetched = datetime.fromisoformat(value["fetched_at"])
-    if fetched.tzinfo is None:
-        raise ValueError("timezone_required")
-    subjects = value.get("subjects")
-    if subjects is not None:
-        if not isinstance(subjects, dict) or not subjects:
-            raise ValueError("invalid_subjects")
-        if any(k not in SUBJECT_NAMES.values() or type(v) is not int or v < 0 for k, v in subjects.items()):
-            raise ValueError("invalid_subjects")
-        if sum(subjects.values()) != total:
-            raise ValueError("subject_total_mismatch")
-        subjects = dict(subjects)
-    return {"date": day, "total_minutes": total, "subjects": subjects,
-            "fetched_at": fetched.astimezone(JST).isoformat(timespec="seconds")}
 
 
 def read_json(path: Path):

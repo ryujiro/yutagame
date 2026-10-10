@@ -48,7 +48,7 @@ export function useDashboard() {
   }, [data, updating, load]);
 
   const refresh = useCallback(async () => {
-    if (busy.current || remaining || !data?.credentials_ready || data?.refreshing) return;
+    if (busy.current || remaining || (!data?.credentials_ready && data?.refresh_mode !== 'saved_records') || data?.refreshing) return;
     busy.current = true;
     setUpdating(true);
     setNetworkError(null);
@@ -56,7 +56,9 @@ export function useDashboard() {
     activeRequest.current = controller;
     const timeout = setTimeout(() => controller.abort(), 130000);
     try {
-      const response = await fetch('/api/refresh', {
+      const response = data.refresh_mode === 'saved_records' ? await fetch('/api/dashboard', {
+        cache: 'no-store', signal: controller.signal,
+      }) : await fetch('/api/refresh', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Learning-Request': '1' },
         body: '{}', signal: controller.signal,
       });

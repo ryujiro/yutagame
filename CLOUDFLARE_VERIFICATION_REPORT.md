@@ -1,3 +1,29 @@
+# 無料版への変更と検証（2026-10-10）
+
+ユーザーのCloudflare公開画面で、Browser RenderingにWorkers Paidが必要という表示を確認し、ユーザーの「無料」という指定に合わせて構成を変更した。サイトはWorkers Free、取得はGitHub Actionsの標準Linux runnerでPython + Playwrightを使用する。有料契約はしていない。
+
+## 今回確認したこと
+
+- Browser Renderingの依存・binding、Durable Objectのbindingとマイグレーション、Cloudflare側の必須認証シークレットを削除。Workerは画面と公開JSONの読み取りだけを行う。
+- 無料Workerのdry-run成功。gzip約3.3KiB。bindingはStatic Assetsと非秘密の公開JSON URLだけ。
+- Node29件、Python55件、計84件のテストが成功。無料版のJSON検証・前回値保持・JST・GETによる表示更新・認証POSTなし・取得用スクリプトの未設定停止・失敗後10分待機を含む。
+- Reactの本番ビルド成功。ローカルの実workerdで画面を起動し、スマホ幅390/320を含む画面10項目が成功。無料版の表示更新でGETが1回、認証POSTが0回であることを確認。
+- Workflow YAMLの読み込み、時刻設定、単一ジョブ、書き込み権限の構造を確認。actionlintは環境にないため未実行。GitHub上でのworkflow実行は未確認。
+- GitHubの既存の公開JSONを認証情報なしのHTTPS GETで読めた（200）。新しい公開JSONはmainへの保存後に再確認する。
+- **Codex CloudのLinuxから、変更後のActions用Python入口を使って実取得を1回実行し、全5段階が成功した。** 実結果は2026-10-10T18:22:20+09:00、198分、数学2分・英語19分・国語100分・理科4分・社会73分。画面・API・教科合計を照合した。[free-live.json](verification-results/free-live.json)。公開用の履歴には必要な項目だけを追加し、GitHubの自動取得設定は未完了の表示を維持した。
+
+採用画像と最新のデスクトップ・スマホ画面を同時に確認し、ナビと本文の配置、合計と内訳の位置、文字の階層、教科の色、余白の5点を比較した。無料版では操作名を「表示を更新」へ変更し、取得準備の案内を追加した。198分・5教科・2件の履歴は実取得データであり、採用画像の162分をコピーした結果ではない。
+
+## 未完了
+
+Cloudflareへの公開と発行URL、ユーザーのGitHubシークレット設定、GitHub-hosted runnerからの実認証とJSONの更新、公開URLから新しい値が読めることは未検証。Codex Cloudでの実取得成功をGitHub Actionsの成功と混同しない。ログインの安定性も継続検証が必要。
+
+次は無料版の公開画面を開き直してGitHubと接続し、サイトを公開する。その後、元リポジトリryujiro/yutagameのGitHub Actions SecretsにID・パスワードを本人が設定し、手動実行を1回確認する。サイトの「表示を更新」は保存済みJSONのGETであり、ブラウザ上で認証はしない。
+
+---
+
+# 以前のBrowser Run構成の記録（現在の公開設定では使用しない）
+
 # Cloudflare版の検証結果
 
 2026-10-10、Codex CloudでCloudflare用のコード・設定・公開手順を準備しました。Worker名はmanabi-note。既存family-dashboardを対象にする設定・API操作は含めていません。ユーザーの指定どおり閲覧ログインはありません。

@@ -43,8 +43,11 @@ async def main():
 
         await page.set_viewport_size({'width': 1440, 'height': 1000})
         test_state = copy.deepcopy(real_state)
-        test_state.update(retry_after_seconds=0, next_refresh_at=None, error=None, refreshing=False, credentials_ready=True)
+        test_state.update(retry_after_seconds=0, next_refresh_at=None, error=None, refreshing=False, credentials_ready=True, refresh_mode='manual')
+        get_count = 0
         async def dashboard(route):
+            nonlocal get_count
+            get_count += 1
             await route.fulfill(json=test_state)
         await page.route('**/api/dashboard', dashboard)
         post_count = 0
@@ -94,6 +97,18 @@ async def main():
         await expect(page.get_by_role('button', name='学習時間を更新', exact=True)).to_be_disabled()
         await expect(page.get_by_text('更新の準備が必要です', exact=True)).to_be_visible()
         checks.append('認証情報未設定は更新無効と設定案内')
+        test_state.update(refresh_mode='saved_records', collection_status='passed', credentials_ready=False)
+        await page.reload()
+        await expect(page.get_by_role('button', name='表示を更新', exact=True)).to_be_enabled()
+        await expect(page.get_by_text('定期的に記録を取得します', exact=True)).to_be_visible()
+        previous_gets, previous_posts = get_count, post_count
+        await page.route('**/api/refresh', failed_refresh)
+        await page.get_by_role('button', name='表示を更新', exact=True).click()
+        await expect(page.get_by_role('button', name='表示を更新', exact=True)).to_be_enabled()
+        assert get_count == previous_gets + 1
+        assert post_count == previous_posts
+        await expect(page.locator('.total-number')).to_have_text(expected_total)
+        checks.append('無料版の表示更新はGET1回で、認証POSTを送らない')
         assert not errors
         checks.append('ブラウザのJavaScript例外0件')
         await browser.close()

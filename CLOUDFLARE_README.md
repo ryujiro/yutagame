@@ -1,62 +1,66 @@
-# スマートフォンから開くためのCloudflare公開手順
+# 無料で公開する「まなびノート」
 
-既存のCloudflareアカウントを使い、新しいWorker **manabi-note** を作ります。既存の `family-dashboard` を編集する設定は含みません。ユーザーの希望に従い、閲覧ログインは設けません。
+Cloudflare Workers Freeでスマホ向けのサイトを表示し、GitHub ActionsのPython + Playwrightで学習時間を取得します。有料Browser Rendering、Durable Objects、Cloudflare APIトークンは使いません。閲覧用のログインはありません。
 
-## まず押すリンク
+## まずサイトを公開する
 
-**[Cloudflareでこのサイトを公開する](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fryujiro%2Fyutagame)**
+[Cloudflareの公開画面を開く](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fryujiro%2Fyutagame)
 
-Cloudflareにログインし、既存アカウントを選びます。画面の指示に従ってGitHubとの連携を許可し、このリポジトリを使って公開します。Worker名は `manabi-note` にします。公開が完了したら、Cloudflareに表示される `https://…workers.dev/` のURLをスマホで開き、家族へ共有できます。
+以前の公開画面を開いている場合は、上のリンクから開き直します。
 
-**URLが表示されてから公開成功です。** このリンクを押すだけで、既にサイトが公開済みという意味ではありません。
+1. 「新しいGitHub接続」を押し、GitHubで接続を許可する。
+2. プロジェクト名は `manabi-note`。既存の `family-dashboard` は変更しない。
+3. 「デプロイ」を押す。有料Browser Renderingへの案内は、最新の無料版設定では不要。
+4. 完了後にCloudflareが表示する `https://…workers.dev/` を開く。そのURLを家族に共有する。
 
-## リンクから進められない場合
+公開ウィザードはサイト用のGitリポジトリを複製します。サイトは複製側で動き、取得するデータは元の `ryujiro/yutagame` から読みます。取得用の設定は下記の元リポジトリで行ってください。
 
-1. Cloudflareの **Workers & Pages** を開き、新しいWorkerの作成からGitHubリポジトリのインポートを選びます。
-2. `ryujiro/yutagame` の `main` を選びます。ルートディレクトリはリポジトリのルートです。
-3. Worker名を `manabi-note`、ビルドを `npm run build`、デプロイを `npm run deploy` にします。Node.js 22.12以上を使います。
-4. 作成・公開し、表示されたURLを開きます。
+ボタンから進めない場合はWorkers & PagesでGitHubの `ryujiro/yutagame` を取り込みます。ブランチ `main`、ルートディレクトリは空欄、ビルド `npm run build`、デプロイ `npm run deploy`、Worker名 `manabi-note`。Workers Freeを使用し、有料プランの購入は不要です。
 
-`wrangler.jsonc` に、画面配信・Browser Run・履歴用Durable Objectsの設定が入っています。有料プランへの変更はこの構成では指定していません。Browser RunやDurable Objectsの利用可否・無料枠はアカウントのプランと実際の画面を確認してください。枠を超えたりブラウザ機能が使えない場合、新しい取得は失敗し、前回の表示を保持します。
+このリンクは公開手続きの入口です。発行前のサイトURLを公開済みとして扱わないでください。
 
-## 学習時間を更新するための設定
+## 次に自動取得を設定する
 
-公開先のWorkerで **Settings → Variables and Secrets** を開き、次の2つを **Secret** として設定します。
+[GitHubの取得用シークレット設定を開く](https://github.com/ryujiro/yutagame/settings/secrets/actions)
 
-| 名前 | 設定する値 |
-|---|---|
+「New repository secret」から、次の2つを登録します。
+
+| Name | Secretに入力する値 |
+| --- | --- |
 | `SMILE_ZEMI_LOGIN_ID` | みまもるネットのログインID |
 | `SMILE_ZEMI_PASSWORD` | みまもるネットのパスワード |
 
-値はCloudflareの設定画面だけに入力してください。チャット・GitHub・ソースコード・ビルド変数に貼り付けません。Codexのシークレット設定はCloudflareへ自動転送されません。プロキシの置換用文字列を転記することもありません。
+値はGitHubのSecret欄にだけ入力します。チャット・ソースコード・通常のVariablesには書きません。Codex CloudのシークレットはGitHubに自動転送されません。CloudflareにこのID・パスワードを登録する必要はありません。
 
-最初は保存済みの2026-10-10 16:07取得、162分の**実取得記録**を表示します。新しい取得はシークレット設定後に更新ボタンで1回実行します。未設定時は更新できません。Cloudflare上での実認証と当日抽出は、公開・シークレット設定後に検証する必要があります。Codex Cloudで一度成功したことは、Cloudflareでも成功する証拠にはしません。
+[GitHub Actionsを開く](https://github.com/ryujiro/yutagame/actions/workflows/learning-records.yml)。必要ならActionsを有効にし、「Run workflow」で `main` を選び、1回実行します。定期取得は日本時間15:17〜22:17の毎時17分です。GitHub側の混雑で遅れる場合があります。公開リポジトリの標準GitHub-hosted runnerの無料枠を使い、有料runnerを選びません。
 
-## 構成
+実行が成功したらサイトで「表示を更新」を押します。これは保存記録を読み直す操作で、みまもるネットにログインする操作ではありません。GitHubの配信キャッシュで反映まで数分かかる場合があります。追加でサイトを再デプロイする必要はありません。
 
-React画面はPython版と共通です。WorkersはPythonサーバーを動かす環境ではないため、公開版の取得は独立したJavaScript関数 `fetchTodayLearningTime()` とCloudflare公式Playwrightを使用します。取得条件・既存セレクタ・DOM/API照合はPython版に合わせています。元のPython関数も残しています。
+Actionsの取得処理は元の `ryujiro/yutagame` だけで実行します。ウィザードで作った複製側のworkflowは取得ジョブをスキップします。
 
-- **Workers / Static Assets**：画面と同一URLのAPI。Cloudflare側でHTTPSを提供。
-- **Browser Run**：正規画面操作による1回の取得。認証後のスクリーンショット・Cookie・DOMは保存しない。
-- **SQLite Durable Object**：取得履歴100件と最終試行時刻・固定エラー案内。全訪問者で同じ10分の待ち時間を管理。
+## データと失敗時の動作
 
-Cookie・セッショントークンは履歴に保存しません。複数のお子さま・中学生以外のコースには未対応です。CAPTCHA・多要素認証がある場合は止めます。認証失敗は自動再試行しません。定期実行はしません。
+`public-data/dashboard.json` に学習日・合計分・教科別分・取得日時の最新100件と、最終試行時刻・固定の取得状態だけを保存します。このデータは、閲覧制限を設けないという指定に従って公開します。ID・パスワード・子どもの名前・ID・Cookie・ticket・セッショントークン・認証後DOMは保存しません。
 
-## 開発者向け確認
+初回は実取得済みの記録を表示します。現在の最新記録は2026-10-10 18:22:20取得、198分（数学2分、英語19分、国語100分、理科4分、社会73分）。これを起動時の新たな取得結果とは表示しません。GitHubの設定前は「自動取得は準備中です」と表示します。
+
+取得関数は独立した `fetch_today_learning_time()`、Actions用の入口は `scripts/update_public_data.py`。未設定なら認証を試行せず、不足する変数名を報告します。取得は同時に1ジョブ、全試行に10分の待ち時間を設けます。自動再試行はありません。失敗時は前回の記録・取得日時を保持します。CAPTCHAや多要素認証は回避せず、手動確認を報告します。中学生コース・子ども1人の確認済み画面に対応します。
+
+無料WorkerはGitHubの公開JSONをHTTPSで読み、ホスト・日付・分数・教科合計・日時を検証します。配信先の障害や不正なデータの場合は、ビルドに含めた実記録を表示して案内を出します。GitHubの公開JSONが必須なので、元リポジトリを非公開に変更する場合は取得結果の配信方法も変更が必要です。
+
+## 開発と検証
 
 ```bash
+cd /workspace/yutagame
 npm ci --cache /workspace/.cache/npm --no-audit --no-fund
 npm run build
 npm test
-# Codex環境の設定・ログの書き込み先をworkspace内にする:
 XDG_CONFIG_HOME=/workspace/yutagame/.local/wrangler-config WRANGLER_SEND_METRICS=false npm run check:cloudflare
-XDG_CONFIG_HOME=/workspace/yutagame/.local/wrangler-config WRANGLER_SEND_METRICS=false npm run dev:cloudflare
+/workspace/.venvs/yutagame/bin/python -m unittest discover -s tests -v
 ```
 
-`check:cloudflare` はビルド検査だけで公開しません。`dev:cloudflare` はローカル版の設定を使用し、Browser Runやシークレットを設定していません。ローカル版を実認証の証拠にしません。
+クラウド内のローカル検証は同じ環境変数で `npm run dev:cloudflare`。`wrangler.local.jsonc` は同梱データだけを読み、外部への取得やログインを行いません。画面検証は `MANABI_WEB_URL=http://127.0.0.1:8787 /workspace/.venvs/yutagame/bin/python tests/web_browser_checks.py`。
 
-```bash
-MANABI_WEB_URL=http://127.0.0.1:8787 /workspace/.venvs/yutagame/bin/python tests/web_browser_checks.py
-```
+`cloudflare/src/fetch-smile.js` と `service.js` は以前の実装の検証用として残していますが、無料Workerには読み込まれません。Cloudflare公式Playwrightの依存、Browser binding、Durable Object binding、マイグレーション、必須シークレットは公開設定から削除しました。
 
-CLIから公開する場合は、**自分のPC**で `npx wrangler login` のCloudflareログインを済ませ、`npm run deploy` を実行します。トークンをコマンド引数に貼り付ける必要はありません。公開時にアカウントの制限で失敗した場合、エラーを確認して対応し、有料契約を自動で追加しません。
+CloudflareとGitHubの無料利用枠の範囲で利用します。無料枠を超えた場合に有料へ自動移行する設定は追加していません。GitHub Actionsの実行・Cloudflare公開URLの確認は、本人の接続とシークレット設定後に行います。[検証レポート](CLOUDFLARE_VERIFICATION_REPORT.md)を参照してください。

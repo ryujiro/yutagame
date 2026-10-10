@@ -1,0 +1,24 @@
+{
+  "method": "Codex Cloud Python runner; GitHub Actions runner not tested",
+  "exit_code": 0,
+  "status": "acquired",
+  "record": {
+    "date": "2026-10-10",
+    "total_minutes": 198,
+    "subjects": {
+      "数学": 2,
+      "英語": 19,
+      "国語": 100,
+      "理科": 4,
+      "社会": 73
+    },
+    "fetched_at": "2026-10-10T18:22:20+09:00"
+  },
+  "stages": {
+    "connection": "passed",
+    "login_page": "passed",
+    "authentication": "passed",
+    "records_page": "passed",
+    "extraction": "passed"
+  }
+}

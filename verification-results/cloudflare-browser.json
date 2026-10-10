@@ -1,5 +1,6 @@
 {
   "method": "local Playwright Chromium",
+  "base_url": "http://127.0.0.1:8787",
   "desktop_viewport": [
     1440,
     1000
@@ -23,8 +24,8 @@
     "教科nullを0分の内訳に変換しない",
     "翌日の表示で過去の記録を今日と誤表示しない",
     "認証情報未設定は更新無効と設定案内",
+    "無料版の表示更新はGET1回で、認証POSTを送らない",
     "ブラウザのJavaScript例外0件"
   ],
-  "live_authentication_attempts": 0,
-  "base_url": "http://127.0.0.1:8787"
+  "live_authentication_attempts": 0
 }
