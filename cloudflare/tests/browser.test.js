@@ -18,7 +18,8 @@ function html(mismatch = false) {
   };</script></body></html>`;
 }
 async function fixture(options = {}) {
-  const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const executablePath=process.env.CHROME_PATH || (process.platform==='win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : '/usr/bin/chromium');
+  const browser = await chromium.launch({ executablePath, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const stats = { posts: 0, contexts: 0, unexpectedRequests: 0 };
   const originalNewContext = browser.newContext.bind(browser);
   browser.newContext = async (...args) => {

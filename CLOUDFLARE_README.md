@@ -1,5 +1,7 @@
 # 無料で公開する「まなびノート」
 
+2026-10-11追記: [手動ログイン取得とFamily Safety連携](FAMILY_SAFETY_README.md)を追加しました。現在の構成には新D1とBrowser Run bindingがあります。下記は元の「保存済み記録を読み直す」構成の手順です。旧構成の設定で再配備すると時間残高・手動取得が消えるため、GitHub mainの最新コードと設定を使用してください。
+
 Cloudflare Workers Freeでスマホ向けのサイトを表示し、GitHub ActionsのPython + Playwrightで学習時間を取得します。有料Browser Rendering、Durable Objects、Cloudflare APIトークンは使いません。閲覧用のログインはありません。
 
 ## 公開済みのサイト
