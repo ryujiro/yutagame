@@ -12,7 +12,8 @@ test('更新ボタン→POST→ログイン取得結果を表示（実画面・�
     for(const width of [1440,390]) {
       const page=await browser.newPage({viewport:{width,height:1000}});
       const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error') errors.push(m.text());});
-      let posts=0,body;
+      let posts=0,body,release,entered;
+      const gate=new Promise(r=>release=r),started=new Promise(r=>entered=r);
       await page.route('**/api/dashboard',async route=>{
         const r=await route.fetch();body=await r.json();
         body={...body,credentials_ready:true,refresh_mode:'manual_login',retry_after_seconds:0,error:null};
@@ -20,15 +21,21 @@ test('更新ボタン→POST→ログイン取得結果を表示（実画面・�
       });
       await page.route('**/api/refresh',async route=>{
         assert.equal(route.request().method(),'POST');assert.equal(route.request().headers()['x-learning-request'],'1');posts++;
-        const fresh={date:'2026-10-11',total_minutes:7,subjects:{数学:7},fetched_at:'2026-10-11T10:00:00+09:00'};
-        await route.fulfill({json:{...body,record:fresh,history:[fresh,...body.history],retry_after_seconds:600,refreshing:false,
-          ledger:{...body.ledger,today_learning_minutes:7,total_learning_minutes:205}}});
+        if(posts===1) {entered();await gate;}
+        const minutes=6+posts;
+        const fresh={date:'2026-10-11',total_minutes:minutes,subjects:{数学:minutes},fetched_at:`2026-10-11T10:00:0${posts}+09:00`};
+        await route.fulfill({json:{...body,record:fresh,history:[fresh,...body.history],retry_after_seconds:0,next_refresh_at:null,refreshing:false,
+          ledger:{...body.ledger,today_learning_minutes:minutes,total_learning_minutes:198+minutes}}});
       });
       await page.goto(process.env.LEDGER_UI_URL);
       await page.getByRole('heading',{name:'合計学習時間'}).waitFor();
       await page.getByRole('button',{name:'学習時間を更新',exact:true}).click();
+      await started;assert.equal(await page.getByRole('button',{name:'取得中',exact:false}).isDisabled(),true);release();
       await page.locator('.total-number').getByText('7',{exact:true}).waitFor();
-      assert.equal(posts,1);assert.equal(await page.getByRole('button',{name:'学習時間を更新',exact:true}).isDisabled(),true);
+      assert.equal(posts,1);assert.equal(await page.getByRole('button',{name:'学習時間を更新',exact:true}).isEnabled(),true);
+      await page.getByRole('button',{name:'学習時間を更新',exact:true}).click();
+      await page.locator('.total-number').getByText('8',{exact:true}).waitFor();
+      assert.equal(posts,2);assert.equal(await page.getByRole('button',{name:'学習時間を更新',exact:true}).isEnabled(),true);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
       await page.getByRole('button',{name:'時間の残高',exact:true}).click();
       await page.getByRole('heading',{name:'PC時間の付与履歴'}).waitFor();

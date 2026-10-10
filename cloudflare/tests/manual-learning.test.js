@@ -25,7 +25,8 @@ test('GETはログインせず、手動更新は最新学習を永続保存す�
   assert.equal(calls,0);assert.equal(first.snapshot().refresh_mode,'manual_login');
   assert.equal((await first.refresh())[0],200);assert.equal(calls,1);
   const next=await manualLearning(env,saved,clock,fetcher);
-  assert.deepEqual(next.snapshot().record,fresh);assert.equal((await next.refresh())[0],429);assert.equal(calls,1);db.close();
+  assert.deepEqual(next.snapshot().record,fresh);assert.equal(next.snapshot().retry_after_seconds,0);assert.equal(next.snapshot().next_refresh_at,null);
+  assert.equal((await next.refresh())[0],200);assert.equal(calls,2);db.close();
 });
 test('別Workerの同時要求でもログインは1回、失敗時も前回値を保持する',async()=>{
   const db=database();let release,entered,calls=0;
@@ -45,12 +46,14 @@ test('未設定・別サイトからのPOSTはログインせず拒否する',as
   const denied=await worker.fetch(new Request('https://test/api/refresh',{method:'POST',headers:{Origin:'https://other','X-Learning-Request':'1'},body:'{}'}),environment(db));
   assert.equal(denied.status,403);db.close();
 });
-test('1日5回の上限を翌日へ持ち越さず、取得不能を0分にしない',async()=>{
-  const db=database();let time=now,calls=0;
-  const clock=()=>time,fetcher=async()=>{calls++;throw new LearningError('connection','fetch_failed');};
-  for(let i=0;i<5;i++) {const s=await manualLearning(environment(db),saved,clock,fetcher);assert.equal((await s.refresh())[0],502);time+=601000;}
-  const blocked=await manualLearning(environment(db),saved,clock,fetcher);
-  assert.equal((await blocked.refresh())[0],429);assert.equal(calls,5);assert.equal(blocked.snapshot().record.total_minutes,198);
-  time+=86400000;const next=await manualLearning(environment(db),saved,clock,fetcher);
-  assert.equal((await next.refresh())[0],502);assert.equal(calls,6);db.close();
+test('旧回数制限・直前の取得を無視して6回続けて取得でき、失敗を0分にしない',async()=>{
+  const db=database();let calls=0;
+  await db.prepare('UPDATE learning_refresh_guard SET last_started=?,quota_day=?,attempts=5 WHERE id=1').bind(now,'2026-10-11').run();
+  const clock=()=>now,fetcher=async()=>{calls++;throw new LearningError('connection','fetch_failed');};
+  for(let i=0;i<6;i++) {
+    const s=await manualLearning(environment(db),saved,clock,fetcher);
+    assert.equal((await s.refresh())[0],502);
+    assert.equal(s.snapshot().retry_after_seconds,0);assert.equal(s.snapshot().record.total_minutes,198);
+  }
+  assert.equal(calls,6);db.close();
 });
