@@ -97,7 +97,7 @@ export default function App() {
         {pastDay && page === 'today' && <Notice>前回取得した{shortDate(record.date)}の記録です。{data.refresh_mode === 'saved_records' ? '今日の記録が取得されると、表示を更新できます。' : '今日の記録は「学習時間を更新」から取得してください。'}</Notice>}
       </div>
       {loading && !data ? <div className="loading-state" role="status"><RefreshCw className="spinning" size={28} aria-hidden="true" /><p>学習記録を読み込んでいます…</p></div> : <>
-        {page === 'today' ? <><TimeBalance ledger={data?.ledger} error={data?.ledger_error} record={record} today={data?.today} /><div className="learning-details"><Subjects record={record?.date===data?.today ? record : null} /></div></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /><TimeHistory ledger={data?.ledger} /></>}
+        {page === 'today' ? <><TimeBalance ledger={data?.ledger} error={data?.ledger_error} record={record} today={data?.today} reload={reload} /><div className="learning-details"><Subjects record={record?.date===data?.today ? record : null} /></div></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /><TimeHistory ledger={data?.ledger} /></>}
       </>}
     </main>
   </div>;
