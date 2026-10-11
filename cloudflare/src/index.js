@@ -2,6 +2,7 @@ import { savedDashboard } from './saved-records.js';
 import { familySafetyApi, ledgerDashboard, importLearning } from './family-safety.js';
 import { manualLearning } from './manual-learning.js';
 import { recentBalance } from './balance.js';
+import { adjustmentApi, readAdjustments } from './manual-adjustments.js';
 
 function json(value, status = 200) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
@@ -18,6 +19,10 @@ export default {
     try {
       const url = new URL(request.url);
       if (url.pathname === '/api/health' && request.method === 'GET') response = json({ status: 'ok', mode: 'saved_records' });
+      else if (url.pathname === '/api/manual-adjustments') {
+        const [status,body]=await adjustmentApi(request,env);
+        response=json(body,status);
+      }
       else if (url.pathname.startsWith('/api/family-safety/')) {
         const [status, body] = await familySafetyApi(request,env,url.pathname);
         response = json(body,status);
@@ -39,6 +44,15 @@ export default {
           try {
             dashboard.ledger = await ledgerDashboard(env.LEDGER_DB,dashboard.history);
             dashboard.ledger.recent = recentBalance(dashboard.ledger);
+            try {
+              dashboard.ledger.adjustment_history=await readAdjustments(env.LEDGER_DB);
+              dashboard.ledger.adjustment_ready=true;
+              dashboard.ledger.recent=recentBalance(dashboard.ledger);
+            } catch {
+              dashboard.ledger.adjustment_error='手動調整の記録を読み込めませんでした。';
+              dashboard.ledger.recent.balance_minutes=null;
+              dashboard.ledger.recent.confirmed_balance_minutes=null;
+            }
           }
           catch { dashboard.ledger_error = '時間の記録を読み込めませんでした。'; }
         }

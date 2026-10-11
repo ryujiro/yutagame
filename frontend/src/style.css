@@ -177,6 +177,46 @@ h1 { font-size: 30px; letter-spacing: 0; }
 .balance-period { font-size: 13px; color: #64748b; margin-top: 6px; }
 .day-overview .ledger-totals { grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 24px; padding-top: 18px; border-top: 1px solid #edf0f4; }
 .day-overview .ledger-totals dd { font-size: 22px; }
+.day-overview .ledger-totals { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.manual-adjustments { margin-top: 20px; max-width: 680px; }
+.adjustment-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.adjustment-heading h3 { margin: 0; font-size: 15px; font-weight: 550; color: #57647a; }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex-shrink: 0; padding: 0; border-radius: 4px; color: #475569; background: #f0f3f6; }
+.icon-button:hover:not(:disabled) { background: #e2e8f0; }
+.icon-button:disabled { opacity: .4; }
+.adjustment-empty { font-size: 13px; color: #64748b; }
+.adjustment-list { margin: 4px 0 0; padding: 0; list-style: none; }
+.adjustment-list li { display: grid; grid-template-columns: minmax(0,1fr) auto 34px; align-items: center; gap: 14px; padding-block: 10px; border-bottom: 1px solid #edf0f4; }
+.adjustment-label { display: block; font-size: 15px; overflow-wrap: anywhere; }
+.adjustment-label small { margin-left: 8px; font-size: 11px; }
+.adjustment-list time { display: block; margin-top: 3px; font-size: 12px; color: #64748b; }
+.adjustment-list strong { font-size: 19px; color: #16735c; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.adjustment-list strong.negative { color: #b42318; }
+.adjustment-list .canceled .adjustment-label, .adjustment-list .canceled strong { color: #64748b; }
+.adjustment-list .canceled strong { text-decoration: line-through; }
+.adjustment-action-placeholder { width: 34px; }
+.adjustment-notice { margin-top: 10px; color: #16735c; font-size: 13px; }
+.adjustment-error { margin-top: 12px; color: #b42318; font-size: 13px; line-height: 1.7; }
+.adjustment-dialog { width: min(420px,calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid #dce2e9; border-radius: 8px; color: #1e293b; }
+.adjustment-dialog::backdrop { background: rgb(15 23 42 / 35%); }
+.adjustment-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.adjustment-dialog h2 { font-size: 20px; }
+.adjustment-dialog fieldset { border: 0; padding: 0; margin: 20px 0 0; min-width: 0; }
+.adjustment-modes { display: flex; padding: 3px; background: #f0f3f6; border-radius: 6px; }
+.adjustment-modes button { display: flex; justify-content: center; align-items: center; gap: 8px; flex: 1; padding: 9px; border-radius: 4px; background: transparent; color: #475569; }
+.adjustment-modes button[aria-pressed='true'] { background: white; color: #16735c; box-shadow: 0 1px 3px #0f172a20; }
+.adjustment-field { display: grid; gap: 8px; margin-top: 18px; font-size: 14px; }
+.adjustment-field input { min-width: 0; width: 100%; padding: 10px 12px; font: inherit; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 4px; color: #1e293b; background: white; }
+.adjustment-presets { display: flex; gap: 8px; margin-top: 10px; }
+.adjustment-presets button { flex: 1; padding: 7px; font-size: 13px; color: #475569; background: #f0f3f6; border-radius: 4px; }
+.adjustment-presets button[aria-pressed='true'] { color: #16735c; background: #e8f5ee; }
+.adjustment-dialog footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.secondary-button, .adjustment-submit { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: 4px; font-size: 14px; }
+.secondary-button { background: #f0f3f6; color: #475569; }
+.adjustment-submit { background: #16735c; color: white; min-width: 110px; }
+.adjustment-submit:disabled { opacity: .6; }
+.undo-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; }
+.undo-summary span { overflow-wrap: anywhere; font-size: 14px; }
 .learning-details { padding-top: 28px; max-width: 680px; }
 .learning-details .subjects h2, .ledger-history h2 { font-size: 18px; letter-spacing: 0; }
 .learning-details .subject-list { margin-top: 18px; gap: 18px; }
@@ -200,6 +240,7 @@ h1 { font-size: 30px; letter-spacing: 0; }
   .day-overview .total-unit, .day-overview small { font-size: 14px; }
   .day-overview .ledger-totals dt { font-size: 12px; }
   .day-overview .ledger-totals dd { font-size: 20px; }
+  .day-overview .ledger-totals { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .learning-details .subject-row { grid-template-columns: 75px minmax(25px,1fr) 48px; gap: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition: none !important; scroll-behavior: auto !important; } }
