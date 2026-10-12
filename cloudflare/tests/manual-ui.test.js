@@ -4,6 +4,7 @@ import { chromium } from 'playwright-core';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
+import { errorMessage } from '../src/learning.js';
 
 test('更新ボタン→POST→ログイン取得結果を表示（実画面・合成応答）',{skip:!process.env.LEDGER_UI_URL},async()=>{
   const browser=await chromium.launch({executablePath:process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'});
@@ -40,6 +41,37 @@ test('更新ボタン→POST→ログイン取得結果を表示（実画面・�
       await page.getByRole('button',{name:'取得履歴',exact:true}).click();
       await page.getByRole('heading',{name:'PC時間の付与履歴'}).waitFor();
       await page.screenshot({path:join(directory,`refresh-${width}.png`),fullPage:false});
+      await page.close();
+    }
+  } finally {await browser.close();}
+});
+
+test('今日の記録なしを案内し、前回値を履歴に保持・再読込で再認証しない（合成）',{skip:!process.env.LEDGER_UI_URL},async()=>{
+  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH || '/usr/bin/chromium'});
+  try {
+    for (const width of [1440,390,320]) {
+      const page=await browser.newPage({viewport:{width,height:1000}});
+      const record={date:'2026-10-10',total_minutes:7,subjects:{数学:7},fetched_at:'2026-10-10T18:00:00+09:00'};
+      const data={record,history:[record],today:'2026-10-11',credentials_ready:true,refresh_mode:'manual_login',retry_after_seconds:0,refreshing:false,error:null};
+      let posts=0;
+      await page.route('**/api/dashboard',route=>route.fulfill({json:data}));
+      await page.route('**/api/refresh',route=>{
+        posts++;data.error=errorMessage('today_record_missing','extraction');
+        return route.fulfill({status:502,json:data});
+      });
+      await page.goto(process.env.LEDGER_UI_URL);
+      await page.getByRole('button',{name:'学習時間を更新',exact:true}).click();
+      const notice=page.getByRole('status').filter({hasText:'今日の学習記録はまだありません'});
+      await notice.waitFor();
+      assert.equal(await page.getByRole('alert').count(),0);
+      assert.equal(await page.getByText('今日の記録は「学習時間を更新」から取得してください。',{exact:false}).count(),0);
+      assert.equal(await page.locator('.total-number').innerText(),'—');
+      assert.equal(await page.getByRole('button',{name:'学習時間を更新',exact:true}).isEnabled(),true);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      await page.reload();await notice.waitFor();assert.equal(posts,1);
+      await page.getByRole('button',{name:'取得履歴',exact:true}).click();
+      await page.locator('.history-section tbody').getByText('7',{exact:true}).waitFor();
+      assert.equal(data.record.fetched_at,record.fetched_at);
       await page.close();
     }
   } finally {await browser.close();}

@@ -52,7 +52,7 @@ async function fixture(options = {}) {
           await route.fulfill({status:options.archiveFailure ? 503 : 200,headers:cors,json:{response_data:{previous_studied_date:null,timelines:[{date,elapsed_time:30,reports:[{subject:'MAT',elapsed_time:30}]}]}}});return;
         }
         await new Promise(resolve => setTimeout(resolve, 150));
-        await route.fulfill({ headers: cors, json: { response_data: { previous_studied_date: options.archive ? '2026-10-03' : null, timelines: [{ date: '2026-10-10', elapsed_time: options.apiMismatch ? 8 : 7, reports: [{ subject: 'MAT', elapsed_time: options.apiMismatch ? 8 : 7 }] }] } } }); return;
+        await route.fulfill({ headers: cors, json: { response_data: { previous_studied_date: options.archive ? '2026-10-03' : null, timelines: options.empty ? [] : [{ date: '2026-10-10', elapsed_time: options.apiMismatch ? 8 : 7, reports: [{ subject: 'MAT', elapsed_time: options.apiMismatch ? 8 : 7 }] }] } } }); return;
       }
       if (path.includes('/monthly-report/')) {
         stats.monthlyGets=(stats.monthlyGets || 0)+1;
@@ -90,6 +90,20 @@ test('正規フォーム操作と遅延API待ち合わせ、DOM/API照合（合�
   assert.ok(STAGES.every(s => progress[s] === 'passed'));
   assert.equal(f.stats.posts, 1); assert.equal(f.stats.unexpectedRequests, 0);
   assert.equal(f.browser.isConnected(), false);
+});
+
+test('日付変更・空のAPIではログイン成功と今日の記録なしを区別（合成）', async () => {
+  for (const empty of [false, true]) {
+    const f = await fixture({ empty });
+    const progress = Object.fromEntries(STAGES.map(s => [s, 'unverified']));
+    const nextDay = () => Date.parse('2026-10-11T07:00:00+09:00');
+    await assert.rejects(fetchTodayLearningTime(credentials, progress, nextDay, f.launch), { code: 'today_record_missing' });
+    assert.equal(progress.authentication, 'passed');
+    assert.equal(progress.records_page, 'passed');
+    assert.equal(progress.extraction, 'unverified');
+    assert.equal(f.stats.posts, 1);
+    assert.equal(f.browser.isConnected(), false);
+  }
 });
 test('401は認証段階で止め、ブラウザを閉じて再試行しない（合成）', async () => {
   const f = await fixture({ reject: true });
