@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Plus, Undo2 } from 'lucide-react';
+import { AlertCircle, Info, Plus, Undo2, RefreshCw } from 'lucide-react';
 import { AdjustmentDialog, signedMinutes } from './AdjustmentDialog.jsx';
 
 const time = value => new Intl.DateTimeFormat('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo', hourCycle: 'h23' }).format(new Date(value));
@@ -7,7 +7,12 @@ const jstDay = value => new Date(Date.parse(value)+9*3600000).toISOString().slic
 function Amount({ value }) { return <>{value == null ? '—' : value}<small>{value == null ? '' : ' 分'}</small></>; }
 export function TimeBalance({ ledger, error, record, today, reload }) {
   const [editing,setEditing]=useState(null),[notice,setNotice]=useState('');
+  const [reloading,setReloading]=useState(false);
   const recent=ledger?.recent;
+  const estimated=recent?.pending_count>0;
+  const balance=recent && Object.hasOwn(recent,'estimated_balance_minutes') ? recent.estimated_balance_minutes : recent?.balance_minutes;
+  const granted=recent && Object.hasOwn(recent,'estimated_total_granted_minutes') ? recent.estimated_total_granted_minutes : recent?.total_granted_minutes;
+  const refreshBalance=async()=>{setReloading(true);try {await reload();} finally {setReloading(false);}};
   const learned=recent?.today_learning_minutes ?? (record?.date===today ? record.total_minutes : null);
   const date=value=>value ? value.slice(5).replace('-','/') : '';
   const canceled=new Set((ledger?.adjustment_history || []).map(a=>a.reversal_of).filter(Boolean));
@@ -16,7 +21,7 @@ export function TimeBalance({ ledger, error, record, today, reload }) {
   return <section className="day-overview" aria-label="今日の学習と時間の残高">
     <div className="overview-metrics">
       <div className="overview-metric"><h2>今日の学習時間</h2><div className="total"><span className="total-number">{learned ?? '—'}</span>{learned!=null && <span className="total-unit">分</span>}</div></div>
-      <div className="overview-metric"><h2>時間の残高</h2><div className="ledger-balance"><strong className={`${recent?.balance_minutes<0 ? 'negative' : ''} ${String(recent?.balance_minutes ?? '').length>5 ? 'compact-amount' : ''}`}><Amount value={recent?.balance_minutes} /></strong></div><p className="balance-period">昨日・今日 {recent ? `（${date(recent.window_start)}・${date(recent.window_end)}）` : ''}</p></div>
+      <div className="overview-metric"><div className="balance-heading"><h2>時間の残高</h2><button type="button" className="icon-button balance-refresh" title="残高の記録を更新" aria-label="残高を更新" disabled={reloading} onClick={refreshBalance}><RefreshCw size={17} className={reloading ? 'spinning' : ''}/></button></div><div className="ledger-balance"><strong className={`${balance<0 ? 'negative' : ''} ${String(balance ?? '').length>5 ? 'compact-amount' : ''}`}><Amount value={balance} /></strong></div>{estimated && <p className="balance-basis">推定</p>}<p className="balance-period">昨日・今日 {recent ? `（${date(recent.window_start)}・${date(recent.window_end)}）` : ''}</p></div>
     </div>
     <div className="manual-adjustments">
       <div className="adjustment-heading"><h3>手動調整</h3><button type="button" className="icon-button" title="調整を追加" aria-label="手動調整を追加" disabled={!ledger?.adjustment_ready} onClick={()=>{setNotice('');setEditing({});}}><Plus size={20}/></button></div>
@@ -29,10 +34,10 @@ export function TimeBalance({ ledger, error, record, today, reload }) {
       {notice && <p className="adjustment-notice" role="status">{notice}</p>}
     </div>
     {recent ? <>
-      <dl className="ledger-totals"><div><dt>2日分の学習</dt><dd><Amount value={recent.total_learning_minutes} /></dd></div><div><dt>2日分の付与（確認済み）</dt><dd><Amount value={recent.total_granted_minutes} /></dd></div><div><dt>2日分の手動調整</dt><dd><Amount value={recent.manual_adjustment_minutes ?? 0} /></dd></div></dl>
-      {recent.pending_count>0 && <p className="ledger-pending"><AlertCircle size={18}/><span>昨日・今日の付与{recent.pending_count}件が未確認です。</span></p>}
+      <dl className="ledger-totals"><div><dt>2日分の学習</dt><dd><Amount value={recent.total_learning_minutes} /></dd></div><div><dt>2日分の付与（{estimated ? '推定含む' : '確認済み'}）</dt><dd><Amount value={granted} /></dd></div><div><dt>2日分の手動調整</dt><dd><Amount value={recent.manual_adjustment_minutes ?? 0} /></dd></div></dl>
+      {recent.unestimated_grant_count>0 ? <p className="ledger-pending"><AlertCircle size={18}/><span>付与{recent.unestimated_grant_count}件の分数が不明です。</span></p> : estimated && <p className="ledger-estimated"><Info size={18}/><span>推定の付与{recent.pending_count}件を含みます。</span></p>}
       {recent.missing_learning_days.length>0 && <p className="ledger-note">{recent.missing_learning_days.map(date).join('・')}の学習記録が未取得です。</p>}
-      {recent.integration_status!=='connected' && <p className="ledger-note">PCの最新記録を確認できていません。</p>}
+      {recent.integration_status!=='connected' && <p className="ledger-note">PCの最新記録を確認できていません。{recent.last_sync_at && `最終受信 ${time(recent.last_sync_at)}時点の記録です。`}</p>}
     </> : <p className="ledger-note">{error || 'PCの時間記録はまだ接続されていません。'}</p>}
     {editing && <AdjustmentDialog undo={editing.undo} onClose={close} onSaved={saved}/>}
   </section>;
@@ -46,7 +51,7 @@ export function TimeHistory({ ledger }) {
       <tbody>{ledger?.grant_history?.length ? ledger.grant_history.map(e => <tr key={e.event_id}>
         <td><time dateTime={e.occurred_at}>{time(e.occurred_at)}</time><small className="ledger-source">Windowsの追加時間記録</small></td>
         <td>{e.confirmation_status === 'confirmed' ? `${e.granted_minutes}分` : e.estimated_minutes == null ? '分数不明' : `推定 ${e.estimated_minutes}分`}</td>
-        <td><span className={`ledger-status ${e.confirmation_status === 'confirmed' ? 'confirmed' : ''}`}>{e.confirmation_status === 'confirmed' ? '確認済み' : '要確認'}</span></td>
+        <td><span className={`ledger-status ${e.confirmation_status === 'confirmed' ? 'confirmed' : ''}`}>{e.confirmation_status === 'confirmed' ? '確認済み' : e.estimated_minutes==null ? '分数不明' : '推定'}</span></td>
       </tr>) : <tr><td colSpan="3">付与記録はまだありません。</td></tr>}</tbody></table></div></section>
     <section><h2>日別の学習履歴</h2><table><thead><tr><th>学習日</th><th>学習時間</th><th>最終取得</th></tr></thead><tbody>
       {ledger?.learning_history?.length ? ledger.learning_history.map(d => <tr key={d.date}><td>{d.date}</td><td>{d.total_minutes}分</td><td>{time(d.fetched_at)}</td></tr>) : <tr><td colSpan="3">学習記録はまだありません。</td></tr>}

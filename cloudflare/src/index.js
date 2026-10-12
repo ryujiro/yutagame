@@ -52,6 +52,7 @@ export default {
               dashboard.ledger.adjustment_error='手動調整の記録を読み込めませんでした。';
               dashboard.ledger.recent.balance_minutes=null;
               dashboard.ledger.recent.confirmed_balance_minutes=null;
+              dashboard.ledger.recent.estimated_balance_minutes=null;
             }
           }
           catch { dashboard.ledger_error = '時間の記録を読み込めませんでした。'; }

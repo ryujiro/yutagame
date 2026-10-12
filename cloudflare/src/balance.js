@@ -10,8 +10,15 @@ export function recentBalance(ledger, now = Date.now()) {
   const base=summarizeLedger(days,events,bridges,now);
   const adjustments=(ledger.adjustment_history || []).filter(a=>inWindow(a.effective_date));
   const correction=adjustments.reduce((sum,a)=>sum+a.delta_minutes,0);
+  const pending=events.filter(e=>e.confirmation_status!=='confirmed');
+  const unknown=pending.filter(e=>!Number.isInteger(e.estimated_minutes) || e.estimated_minutes<1 || e.estimated_minutes>1440);
+  const estimatedTotal=unknown.length ? null : base.total_granted_minutes+pending.reduce((sum,e)=>sum+e.estimated_minutes,0);
+  // Estimates are a separate display value, never a confirmation of the original events.
+  const estimatedBalance=base.total_learning_minutes==null || estimatedTotal==null || base.missing_learning_days.length ? null : base.total_learning_minutes-estimatedTotal+correction;
   return {...base,window_start:yesterday,window_end:today,adjustment_history:adjustments,
     manual_adjustment_minutes:correction,
+    estimated_total_granted_minutes:estimatedTotal,estimated_balance_minutes:estimatedBalance,
+    unestimated_grant_count:unknown.length,
     balance_minutes:base.balance_minutes==null ? null : base.balance_minutes+correction,
     confirmed_balance_minutes:base.confirmed_balance_minutes==null ? null : base.confirmed_balance_minutes+correction};
 }
