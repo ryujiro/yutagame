@@ -1,5 +1,6 @@
 import { LearningError, SELECTORS, parseTimeline, extractToday, todayJst } from './learning.js';
 import { fetchMonthlyRecord } from './monthly.js';
+import { fetchStudyArchive } from './study-archive.js';
 
 const LOGIN = 'https://smile-zemi.jp/mimamoru-net/ui/login';
 const LOGIN_API = 'https://m.smile-zemi.jp/api/common/login';
@@ -13,10 +14,11 @@ async function challenge(page) {
 }
 
 // 画面操作・DOM/API照合をPython版と同じ条件で行う。秘密・DOMは保存しない。
-export async function fetchTodayLearningTime(env, progress, clock = Date.now, launchBrowser) {
+export async function fetchTodayLearningTime(env, progress, clock = Date.now, launchBrowser, archiveOptions = {}) {
   if (!env.SMILE_ZEMI_LOGIN_ID || !env.SMILE_ZEMI_PASSWORD) throw new LearningError('authentication', 'missing_environment_variables');
   if (!env.BROWSER) throw new LearningError('connection', 'browser_binding_missing');
   let browser, stage = 'connection', transportFailure, timedOut = false;
+  const archiveDeadline = Date.now() + 85000;
   const timeout = setTimeout(() => {
     timedOut = true;
     if (browser) browser.close().catch(() => {});
@@ -66,7 +68,12 @@ export async function fetchTodayLearningTime(env, progress, clock = Date.now, la
         if (path === '/api/common/children') {
           const children = (await response.json())?.response_data?.child;
           observation.childCount = Array.isArray(children) ? children.length : null;
-        } else if (timeline) observation.records = parseTimeline(await response.json());
+        } else if (timeline) {
+          const data = await response.json();
+          observation.records = parseTimeline(data);
+          observation.archive = data;
+          observation.sourceUrl = request.url();
+        }
       } catch { observation.failure = 'timeline_response_unreadable'; }
       finally { if (timeline) ready(); if (path === '/api/common/children') childrenReady(); }
     });
@@ -109,9 +116,11 @@ export async function fetchTodayLearningTime(env, progress, clock = Date.now, la
     await page.locator(SELECTORS.root).filter({ visible: true }).first().waitFor();
     const result = await extractToday(page, observation.records, todayJst(clock()), clock);
     progress.extraction = 'passed';
+    const study_archive = await fetchStudyArchive(page, observation.archive, observation.sourceUrl,
+      { ...archiveOptions, clock, deadline: Math.min(Date.now() + 45000, archiveDeadline) });
     // Monthly counts are optional and never replace the validated daily minutes.
-    try { return { ...result, monthly: await fetchMonthlyRecord(page, clock) }; }
-    catch { return { ...result, monthly_error: true }; }
+    try { return { ...result, study_archive, monthly: await fetchMonthlyRecord(page, clock) }; }
+    catch { return { ...result, study_archive, monthly_error: true }; }
   } catch (error) {
     if (error instanceof LearningError) throw error;
     throw new LearningError(stage, transportFailure || 'browser_operation_failed');

@@ -3,6 +3,7 @@ import { familySafetyApi, ledgerDashboard, importLearning } from './family-safet
 import { manualLearning } from './manual-learning.js';
 import { recentBalance } from './balance.js';
 import { adjustmentApi, readAdjustments } from './manual-adjustments.js';
+import { summarizeStudy } from './study-archive.js';
 
 function json(value, status = 200) {
   const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
@@ -43,6 +44,8 @@ export default {
         if (env.LEDGER_DB) {
           try {
             dashboard.ledger = await ledgerDashboard(env.LEDGER_DB,dashboard.history);
+            try { dashboard.study_history = summarizeStudy(dashboard.ledger.learning_history, dashboard.study_archive); }
+            catch { dashboard.study_history_error = '過去の学習記録を読み込めませんでした。'; }
             dashboard.ledger.recent = recentBalance(dashboard.ledger);
             try {
               dashboard.ledger.adjustment_history=await readAdjustments(env.LEDGER_DB);
