@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
 import { fetchTodayLearningTime } from '../src/fetch-smile.js';
-import { STAGES, LearningError } from '../src/learning.js';
+import { STAGES, LearningError, cleanRecord } from '../src/learning.js';
+import { monthlyApi, monthlyHtml } from './monthly-fixture.js';
 
 const clock = () => Date.parse('2026-10-10T18:00:00+09:00');
 const credentials = { BROWSER: {}, SMILE_ZEMI_LOGIN_ID: 'unit-test-id', SMILE_ZEMI_PASSWORD: 'unit-test-password' };
 // このHTML/APIは合成フィクスチャ。実サイト・認証情報・子どものデータを使わない。
-function html(mismatch = false) {
+function html(mismatch = false, monthlyMismatch = false) {
   return `<!doctype html><html lang="ja"><head><meta charset="UTF-8"></head><body><input type="email" name="userId"><input type="password" name="password"><button>ログイン</button><script>
   document.querySelector('button').onclick=async()=>{
     const response=await fetch('https://m.smile-zemi.jp/api/common/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:document.querySelector('[name=userId]').value,password:${mismatch ? "''" : "document.querySelector('[name=password]').value"}})});
@@ -15,6 +16,8 @@ function html(mismatch = false) {
     document.body.innerHTML='<button>ログアウト</button><div class="dailyLogRoot__J7L4P"><div class="dailyRoot__a754V"><div class="date__FKSSm">10/10(土)</div><div class="studyDateInner__s0Jtj"><div>合計</div><div>7分</div></div><div class="subject__bWHro"><div class="summary__raEvD"><div class="name__TRpmJ">数学</div><div class="time__Pn3gb">7</div></div></div></div></div>';
     fetch('https://m.smile-zemi.jp/api/common/children');
     fetch('https://m.smile-zemi.jp/api/chu/timeline/v2/daily-report/synthetic-child');
+    const monthly=document.createElement('button');monthly.textContent='月';document.body.append(monthly);
+    monthly.onclick=()=>{document.body.innerHTML=${JSON.stringify(monthlyHtml(monthlyMismatch))};fetch('https://m.smile-zemi.jp/api/chu/timeline/v2/monthly-report/synthetic-child');};
   };</script></body></html>`;
 }
 async function fixture(options = {}) {
@@ -30,7 +33,7 @@ async function fixture(options = {}) {
       const request = route.request(), path = new URL(request.url()).pathname;
       const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
       if (request.method() === 'OPTIONS') { await route.fulfill({ status: 204, headers: cors }); return; }
-      if (path.endsWith('/ui/login')) { await route.fulfill({ contentType: 'text/html', body: html(options.mismatch) }); return; }
+      if (path.endsWith('/ui/login')) { await route.fulfill({ contentType: 'text/html', body: html(options.mismatch, options.monthlyMismatch) }); return; }
       if (path.endsWith('/common/login')) {
         stats.posts++;
         await route.fulfill({ status: options.reject ? 401 : 200, headers: cors, json: { response_data: options.reject ? {} : { ticket: 'synthetic-ticket-not-a-real-session' } } }); return;
@@ -42,6 +45,10 @@ async function fixture(options = {}) {
       if (path.includes('/daily-report/')) {
         await new Promise(resolve => setTimeout(resolve, 150));
         await route.fulfill({ headers: cors, json: { response_data: { timelines: [{ date: '2026-10-10', elapsed_time: options.apiMismatch ? 8 : 7, reports: [{ subject: 'MAT', elapsed_time: options.apiMismatch ? 8 : 7 }] }] } } }); return;
+      }
+      if (path.includes('/monthly-report/')) {
+        stats.monthlyGets=(stats.monthlyGets || 0)+1;
+        await route.fulfill({status:options.monthlyFailure ? 503 : 200,headers:cors,json:monthlyApi()});return;
       }
       stats.unexpectedRequests++;
       await route.abort();
@@ -69,7 +76,9 @@ test('正規フォーム操作と遅延API待ち合わせ、DOM/API照合（合�
   let result;
   try { result = await fetchTodayLearningTime(credentials, progress, clock, f.launch); }
   catch (error) { throw new Error(JSON.stringify({ stage: error.stage, code: error.code, stats: f.stats, progress })); }
-  assert.deepEqual(result, { date: '2026-10-10', total_minutes: 7, subjects: { 数学: 7 }, fetched_at: '2026-10-10T18:00:00+09:00' });
+  assert.deepEqual(cleanRecord(result), { date: '2026-10-10', total_minutes: 7, subjects: { 数学: 7 }, fetched_at: '2026-10-10T18:00:00+09:00' });
+  assert.equal(result.monthly.total_count,15);assert.equal(result.monthly.target_count,10);assert.equal(result.monthly.month,'2026-10');
+  assert.equal(f.stats.monthlyGets,1);
   assert.ok(STAGES.every(s => progress[s] === 'passed'));
   assert.equal(f.stats.posts, 1); assert.equal(f.stats.unexpectedRequests, 0);
   assert.equal(f.browser.isConnected(), false);
@@ -93,4 +102,12 @@ test('DOM/APIの分数不一致では取得成功にしない（合成）', asyn
   const f = await fixture({ apiMismatch: true });
   await assert.rejects(fetchTodayLearningTime(credentials, {}, clock, f.launch), error => error.code === 'api_display_mismatch');
   assert.equal(f.browser.isConnected(), false);
+});
+
+test('月だけの503やDOM不一致でも日別時間を取得し、再ログインしない（合成）',async()=>{
+  for(const options of [{monthlyFailure:true},{monthlyMismatch:true}]) {
+    const f=await fixture(options),result=await fetchTodayLearningTime(credentials,{},clock,f.launch);
+    assert.equal(result.total_minutes,7);assert.equal(result.monthly_error,true);assert.equal(result.monthly,undefined);
+    assert.equal(f.stats.posts,1);assert.equal(f.stats.monthlyGets,1);assert.equal(f.browser.isConnected(),false);
+  }
 });

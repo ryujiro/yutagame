@@ -1,4 +1,5 @@
 import { LearningError, SELECTORS, parseTimeline, extractToday, todayJst } from './learning.js';
+import { fetchMonthlyRecord } from './monthly.js';
 
 const LOGIN = 'https://smile-zemi.jp/mimamoru-net/ui/login';
 const LOGIN_API = 'https://m.smile-zemi.jp/api/common/login';
@@ -108,7 +109,9 @@ export async function fetchTodayLearningTime(env, progress, clock = Date.now, la
     await page.locator(SELECTORS.root).filter({ visible: true }).first().waitFor();
     const result = await extractToday(page, observation.records, todayJst(clock()), clock);
     progress.extraction = 'passed';
-    return result;
+    // Monthly counts are optional and never replace the validated daily minutes.
+    try { return { ...result, monthly: await fetchMonthlyRecord(page, clock) }; }
+    catch { return { ...result, monthly_error: true }; }
   } catch (error) {
     if (error instanceof LearningError) throw error;
     throw new LearningError(stage, transportFailure || 'browser_operation_failed');

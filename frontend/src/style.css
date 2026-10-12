@@ -250,3 +250,29 @@ h1 { font-size: 30px; letter-spacing: 0; }
   .learning-details .subject-row { grid-template-columns: 75px minmax(25px,1fr) 48px; gap: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition: none !important; scroll-behavior: auto !important; } }
+.monthly-study { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e9ef; max-width: 680px; }
+.monthly-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.monthly-heading h2, .monthly-history > h2 { font-size: 18px; letter-spacing: 0; }
+.monthly-heading > span { font-size: 13px; color: #64748b; white-space: nowrap; }
+.monthly-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; margin-block: 20px; }
+.monthly-summary > div { display: flex; align-items: baseline; gap: 10px; }
+.monthly-summary span, .monthly-summary time { color: #64748b; font-size: 13px; }
+.monthly-summary strong { font-size: 28px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.monthly-summary time { margin-left: auto; }
+.monthly-table { width: 100%; table-layout: fixed; }
+.monthly-table th, .monthly-table td { padding: 14px 8px; font-size: 14px; font-variant-numeric: tabular-nums; text-align: right; width: auto; overflow-wrap: anywhere; }
+.monthly-table th:first-child { text-align: left; width: 29%; }
+.monthly-table tbody th { font-weight: 500; border-bottom: 1px solid #edf0f4; }
+.monthly-table thead th { font-size: 12px; }
+.monthly-subject { display: flex; gap: 8px; align-items: center; }
+.monthly-subject > span { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; }
+.monthly-ahead { color: #16735c; }
+.monthly-empty, .monthly-error { color: #64748b; font-size: 13px; line-height: 1.7; margin-top: 14px; }
+.monthly-error { color: #b42318; }
+.monthly-history { margin-top: 32px; }
+.monthly-history .monthly-study { margin-top: 20px; }
+@media (max-width: 600px) {
+  .monthly-summary time { width: 100%; margin-left: 0; }
+  .monthly-table th, .monthly-table td { padding: 12px 4px; font-size: 13px; }
+  .monthly-table thead th { font-size: 11px; }
+}

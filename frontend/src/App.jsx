@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BookOpen, History, RefreshCw, ChevronRight, Info, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useDashboard } from './useDashboard.js';
 import { TimeBalance, TimeHistory } from './TimeLedger.jsx';
+import { MonthlyStudy, MonthlyHistory } from './MonthlyStudy.jsx';
 
 const COLORS = ['#777cf5', '#f19a85', '#91b8a0', '#e9be75', '#89b9d5', '#b7a0d6'];
 const ORDER = ['数学', '国語', '理科', '社会', '英語'];
@@ -97,7 +98,7 @@ export default function App() {
         {pastDay && page === 'today' && <Notice>前回取得した{shortDate(record.date)}の記録です。{data.refresh_mode === 'saved_records' ? '今日の記録が取得されると、表示を更新できます。' : '今日の記録は「学習時間を更新」から取得してください。'}</Notice>}
       </div>
       {loading && !data ? <div className="loading-state" role="status"><RefreshCw className="spinning" size={28} aria-hidden="true" /><p>学習記録を読み込んでいます…</p></div> : <>
-        {page === 'today' ? <><TimeBalance ledger={data?.ledger} error={data?.ledger_error} record={record} today={data?.today} reload={reload} /><div className="learning-details"><Subjects record={record?.date===data?.today ? record : null} /></div></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /><TimeHistory ledger={data?.ledger} /></>}
+        {page === 'today' ? <><TimeBalance ledger={data?.ledger} error={data?.ledger_error} record={record} today={data?.today} reload={reload} /><div className="learning-details"><Subjects record={record?.date===data?.today ? record : null} /></div><MonthlyStudy record={data?.monthly_record} error={data?.monthly_error} today={data?.today}/></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /><TimeHistory ledger={data?.ledger} /><MonthlyHistory records={data?.monthly_history}/></>}
       </>}
     </main>
   </div>;

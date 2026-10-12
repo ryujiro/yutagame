@@ -4,6 +4,8 @@
 
 「学習時間を更新」は `/api/refresh` にPOSTし、Cloudflare Browser Runからみまもるネットへ正規ログインして今日の学習を取得する。GET/画面読み込みではログインしない。取得値はDOMと記録APIを照合し、D1の同日最新合計にも保存。失敗時は前回記録を維持し、ログインの自動再試行はしない。
 
+2026-10-12追加: 同じログイン中に今月の取り組みAPIと画面も照合する。月の実績/目安は通常講座・ミッションの数で、分数ではない。`monthly_record`は当月、`monthly_history`は月ごと最新の保存記録。学習の既存D1スナップショットに追加するためmigration不要。同月を再取得しても加算せず置換し、月取得だけの失敗なら日別更新を止めず前回月記録と固定の`monthly_error`を保持。Family Safety/残高/調整の記録は変更しない。
+
 必要: `BROWSER` binding、`@cloudflare/playwright` 1.3.6、migration `0002_manual_learning.sql`、Worker secrets `SMILE_ZEMI_LOGIN_ID` / `SMILE_ZEMI_PASSWORD`。`tools/configure-smile-secrets.ps1 -ResultFile <結果JSONの場所>` の別ウィンドウで入力し、EnterでID確定、パスワード入力後Enterで保存。パスワードは表示しない。結果JSONは成功可否だけで、ID/PWを書かない。
 
 アプリ独自の取得間隔・1日回数制限はありません。取得終了後はすぐ次の手動更新ができます。別Worker間の同時要求だけはD1の予約で排他制御します。古い待ち時間・取得回数は制限に使いません。無料のBrowser Run枠にも利用上限があり、アカウント全体の枠を使い切ると取得は失敗する。有料プランへの変更はしていない。[Cloudflare料金・上限](https://developers.cloudflare.com/browser-run/pricing/)。

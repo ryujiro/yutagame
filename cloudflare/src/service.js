@@ -1,4 +1,5 @@
 import { cleanRecord, STAGES, REQUIRED_ENV, isoJst, todayJst, LearningError, errorMessage } from './learning.js';
+import { cleanMonthly, mergeMonthly, MONTHLY_FAILURE } from './monthly.js';
 
 export class LearningService {
   constructor(storage, env, seed, fetcher, clock = Date.now, { refreshIntervalMs = 600000 } = {}) {
@@ -8,13 +9,19 @@ export class LearningService {
   }
   async initialize() {
     const stored = await this.storage.get('dashboard');
-    const fallback = { history: [cleanRecord(this.seed)], lastAttempt: Date.parse(this.seed.fetched_at), error: null };
+    const fallback = { history: [cleanRecord(this.seed)], lastAttempt: Date.parse(this.seed.fetched_at), error: null, monthly_history: [], monthly_error: null };
     if (!stored) { this.state = fallback; return; }
     try {
       const history = stored.history.map(record => cleanRecord(record)).sort((a, b) => b.fetched_at.localeCompare(a.fetched_at)).slice(0, 100);
       const allowed = STAGES.flatMap(stage => ['fetch_failed', 'manual_authentication_required', 'missing_environment_variables', 'single_child_required_manual_selection_needed'].map(code => errorMessage(code, stage)));
       const error = allowed.find(value => JSON.stringify(value) === JSON.stringify(stored.error)) || null;
-      this.state = { history, lastAttempt: Number.isFinite(stored.lastAttempt) ? stored.lastAttempt : null, error };
+      this.state = { history, lastAttempt: Number.isFinite(stored.lastAttempt) ? stored.lastAttempt : null, error, monthly_history: [], monthly_error: stored.monthly_error === MONTHLY_FAILURE ? MONTHLY_FAILURE : null };
+      try {
+        if (stored.monthly_history != null) {
+          if (!Array.isArray(stored.monthly_history) || stored.monthly_history.length > 120) throw new Error('monthly_history');
+          for (const value of stored.monthly_history) this.state.monthly_history = mergeMonthly(this.state.monthly_history, value);
+        }
+      } catch { this.state.monthly_history = []; this.state.monthly_error = MONTHLY_FAILURE; }
     } catch { this.state = fallback; }
   }
   snapshot() {
@@ -22,6 +29,8 @@ export class LearningService {
     const remaining = this.refreshIntervalMs ? Math.max(0, Math.ceil((next - now) / 1000)) : 0;
     const missing = REQUIRED_ENV.filter(name => !this.env[name]);
     return { record: this.state.history[0] || null, history: this.state.history,
+      monthly_record: this.state.monthly_history.find(record => record.month === todayJst(now).slice(0, 7)) || null,
+      monthly_history: this.state.monthly_history, monthly_error: this.state.monthly_error,
       today: todayJst(now), server_time: isoJst(now), refreshing: this.busy,
       retry_after_seconds: remaining, next_refresh_at: remaining ? isoJst(next) : null,
       credentials_ready: !missing.length, missing_environment_variables: missing, error: this.state.error };
@@ -44,8 +53,17 @@ export class LearningService {
         return [503, { ...this.snapshot(), refreshing: false }];
       }
       // 認証を自動再試行しない。ブラウザ操作の待ち時間は取得関数で制御する。
-      const record = cleanRecord(await this.fetcher(this.env, progress, this.clock));
+      const fetched = await this.fetcher(this.env, progress, this.clock);
+      const record = cleanRecord(fetched);
       if (record.date !== todayJst(this.clock())) throw new LearningError('extraction', 'jst_date_changed_retry_required');
+      if (Object.hasOwn(fetched, 'monthly')) {
+        try {
+          const monthly = cleanMonthly(fetched.monthly);
+          if (monthly.month !== todayJst(this.clock()).slice(0, 7)) throw new Error('monthly_date');
+          this.state.monthly_history = mergeMonthly(this.state.monthly_history, monthly);
+          this.state.monthly_error = null;
+        } catch { this.state.monthly_error = MONTHLY_FAILURE; }
+      } else if (fetched.monthly_error) this.state.monthly_error = MONTHLY_FAILURE;
       this.state.history = [record, ...this.state.history.filter(r => r.fetched_at !== record.fetched_at)].slice(0, 100);
       this.state.error = null;
       try { await this.storage.put('dashboard', this.state); }

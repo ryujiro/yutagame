@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 import { manualLearning } from '../src/manual-learning.js';
 import { LearningError } from '../src/learning.js';
 import worker from '../src/index.js';
+import { parseMonthly } from '../src/monthly.js';
+import { monthlyApi } from './monthly-fixture.js';
 
 function database() {
   const sql=new DatabaseSync(':memory:');
@@ -56,4 +58,17 @@ test('旧回数制限・直前の取得を無視して6回続けて取得でき�
     assert.equal(s.snapshot().retry_after_seconds,0);assert.equal(s.snapshot().record.total_minutes,198);
   }
   assert.equal(calls,6);db.close();
+});
+
+test('月実績は既存D1スナップショットに保存され、別WorkerのGETで復元し重複しない',async()=>{
+  const db=database(),clock=()=>now,monthly={...parseMonthly(monthlyApi())[0],fetched_at:fresh.fetched_at};let calls=0;
+  try {
+    const fetcher=async()=>{calls++;return {...fresh,monthly};};
+    const first=await manualLearning(environment(db),saved,clock,fetcher);await first.refresh();
+    const next=await manualLearning(environment(db),saved,clock,fetcher);
+    assert.equal(calls,1);assert.equal(next.snapshot().monthly_record.total_count,15);assert.deepEqual(next.snapshot().record,fresh);
+    await next.refresh();const restored=await manualLearning(environment(db),saved,clock,fetcher);
+    assert.equal(restored.snapshot().monthly_history.length,1);assert.equal(restored.snapshot().monthly_record.total_count,15);assert.equal(calls,2);
+    const original=await db.prepare('SELECT snapshot FROM learning_live_state WHERE id=1').first();assert.ok(!original.snapshot.includes('synthetic-password'));
+  } finally {db.close();}
 });
