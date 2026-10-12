@@ -113,6 +113,8 @@ export async function fetchTodayLearningTime(env, progress, clock = Date.now, la
       await Promise.race([recordsReceived, new Promise((_, reject) => { timer = setTimeout(() => reject(new LearningError(stage, 'timeline_timeout')), 30000); })]);
     } finally { clearTimeout(timer); }
     if (observation.failure || !observation.records) throw new LearningError(stage, observation.failure || 'timeline_missing');
+    // An empty day is not a selector timeout. Do not invent a zero-minute record.
+    if (!observation.records.some(record => record.date === todayJst(clock()))) throw new LearningError(stage, 'today_record_missing');
     await page.locator(SELECTORS.root).filter({ visible: true }).first().waitFor();
     const result = await extractToday(page, observation.records, todayJst(clock()), clock);
     progress.extraction = 'passed';
@@ -123,7 +125,7 @@ export async function fetchTodayLearningTime(env, progress, clock = Date.now, la
     catch { return { ...result, study_archive, monthly_error: true }; }
   } catch (error) {
     if (error instanceof LearningError) throw error;
-    throw new LearningError(stage, transportFailure || 'browser_operation_failed');
+    throw new LearningError(stage, transportFailure || (timedOut ? 'fetch_timeout' : error?.name === 'TimeoutError' ? 'browser_timeout' : 'browser_operation_failed'));
   } finally {
     clearTimeout(timeout);
     if (browser) {

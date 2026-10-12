@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanRecord, todayJst, isoJst, minutes, parseTimeline, equalRecords, LearningError, STAGES } from '../src/learning.js';
+import { cleanRecord, todayJst, isoJst, minutes, parseTimeline, equalRecords, extractToday, errorMessage, LearningError, STAGES } from '../src/learning.js';
 import { LearningService } from '../src/service.js';
 
 const NOW = Date.parse('2026-10-10T18:00:00+09:00');
@@ -125,4 +125,44 @@ test('保存できない場合は認証前に止める', async () => {
   const [status, response] = await instance.refresh();
   assert.equal(status, 503); assert.equal(called, false); assert.equal(response.error.stage, 'storage');
   assert.equal(response.refreshing, false); assert.equal(instance.busy, false);
+});
+
+test('日付変更後の記録なしと重複を区別し、DOMや0分にフォールバックしない', async () => {
+  await assert.rejects(extractToday(null, [RECORD], '2026-10-11'), { code: 'today_record_missing' });
+  await assert.rejects(extractToday(null, [RECORD, RECORD], RECORD.date), { code: 'today_record_missing_or_ambiguous' });
+});
+
+test('今日の記録なしは前回値・取得日時を保持し、診断を再起動後にも復元', async () => {
+  const disk = storage();
+  const instance = await service({ storage: disk, fetcher: async (_, progress) => {
+    for (const s of STAGES.slice(0, -1)) progress[s] = 'passed';
+    throw new LearningError('extraction', 'today_record_missing');
+  } });
+  const [status, response] = await instance.refresh();
+  assert.equal(status, 502); // 今日の分数を取得できたとは返さない。
+  assert.deepEqual(response.record, SEED);
+  assert.equal(response.history.length, 1);
+  assert.equal(response.last_attempt_at, isoJst(NOW));
+  assert.equal(response.error.code, 'today_record_missing');
+  assert.equal(response.verification_stages.authentication, 'passed');
+  assert.equal(response.verification_stages.extraction, 'failed');
+  const restored = await service({ storage: disk });
+  assert.deepEqual(restored.snapshot().error, response.error);
+  assert.deepEqual(restored.snapshot().record, SEED);
+});
+
+test('旧形式の保存エラーを読めて、未知の診断文字列や秘密は保存・出力しない', async () => {
+  const disk = storage();
+  const { code, ...legacy } = errorMessage('fetch_failed', 'connection');
+  await disk.put('dashboard', { history: [SEED], lastAttempt: null, error: legacy });
+  const instance = await service({ storage: disk, fetcher: async () => {
+    throw new LearningError('extraction', 'unit-test-password Cookie=synthetic-token');
+  } });
+  assert.equal(instance.snapshot().error.code, 'fetch_failed');
+  const [, response] = await instance.refresh();
+  assert.equal(response.error.code, 'fetch_failed');
+  for (const value of [response, await disk.get()]) {
+    assert.ok(!JSON.stringify(value).includes('unit-test-password'));
+    assert.ok(!JSON.stringify(value).includes('synthetic-token'));
+  }
 });

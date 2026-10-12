@@ -86,6 +86,7 @@ export default function App() {
   const { data, loading, networkError, reload } = dashboard;
   const record = data?.record;
   const pastDay = record && record.date !== data.today;
+  const todayMissing = data?.error?.code === 'today_record_missing';
   const goTo = (next) => { setPage(next); window.scrollTo({ top: 0, behavior: 'instant' }); };
   return <div className="app-shell">
     <Sidebar page={page} setPage={goTo} />
@@ -93,10 +94,10 @@ export default function App() {
       <header className="page-header"><div><h1 id="page-title">{page === 'history' ? '取得履歴' : '今日の学習'}</h1><p className="page-date">{page === 'history' ? '' : data ? longDate(data.today) : '学習記録を読み込んでいます'}</p></div><RefreshControl dashboard={dashboard} /></header>
       <div className="announcements" aria-live="polite">
         {networkError && <Notice warning>{networkError}{!data && <button className="retry-link" onClick={reload}>もう一度読み込む</button>}</Notice>}
-        {data?.error && <Notice warning title={data.error.title}>{data.error.message}{record && ' 前回の取得結果を表示しています。'}</Notice>}
+        {data?.error && <Notice warning={!todayMissing} title={data.error.title}>{data.error.message}{record && ' 前回の取得結果を表示しています。'}</Notice>}
         {data?.refresh_mode === 'saved_records' && <Notice title={['not_configured', 'missing_credentials'].includes(data.collection_status) ? '自動取得は準備中です' : '定期的に記録を取得します'}>{['not_configured', 'missing_credentials'].includes(data.collection_status) ? '取得設定が完了すると、新しい学習記録が届きます。現在は保存された記録を表示しています。' : '15〜22時に約1時間ごとに取得します。「表示を更新」は保存記録の読み直しです。'}</Notice>}
         {data && data.refresh_mode !== 'saved_records' && !data.credentials_ready && !data.error && <Notice title="ログイン設定が必要です">スマイルゼミのログイン情報がまだ登録されていません。</Notice>}
-        {pastDay && page === 'today' && <Notice>前回取得した{shortDate(record.date)}の記録です。{data.refresh_mode === 'saved_records' ? '今日の記録が取得されると、表示を更新できます。' : '今日の記録は「学習時間を更新」から取得してください。'}</Notice>}
+        {pastDay && !todayMissing && page === 'today' && <Notice>前回取得した{shortDate(record.date)}の記録です。{data.refresh_mode === 'saved_records' ? '今日の記録が取得されると、表示を更新できます。' : '今日の記録は「学習時間を更新」から取得してください。'}</Notice>}
       </div>
       {loading && !data ? <div className="loading-state" role="status"><RefreshCw className="spinning" size={28} aria-hidden="true" /><p>学習記録を読み込んでいます…</p></div> : <>
         {page === 'today' ? <><TimeBalance ledger={data?.ledger} error={data?.ledger_error} record={record} today={data?.today} reload={reload} /><div className="learning-details"><Subjects record={record?.date===data?.today ? record : null} /></div><StudyArchive data={data?.study_history} error={data?.study_history_error || data?.ledger_error}/><MonthlyStudy record={data?.monthly_record} error={data?.monthly_error} today={data?.today}/></> : <><button className="back-button" onClick={() => goTo('today')}><ArrowLeft size={18} aria-hidden="true" />今日の学習に戻る</button><HistoryTable history={data?.history || []} full /><TimeHistory ledger={data?.ledger} /><MonthlyHistory records={data?.monthly_history}/></>}

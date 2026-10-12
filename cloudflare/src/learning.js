@@ -1,5 +1,21 @@
 export const STAGES = ['connection', 'login_page', 'authentication', 'records_page', 'extraction'];
 export const REQUIRED_ENV = ['SMILE_ZEMI_LOGIN_ID', 'SMILE_ZEMI_PASSWORD'];
+// Only these fixed identifiers may leave the browser. Never publish exception text.
+export const ERROR_CODES = [
+  'fetch_failed', 'missing_environment_variables', 'manual_authentication_required',
+  'single_child_required_manual_selection_needed', 'browser_binding_missing',
+  'fetch_timeout', 'browser_timeout', 'browser_operation_failed', 'unsafe_destination',
+  'login_form_payload_not_ready', 'request_handling_failed', 'login_http_error',
+  'login_destination_changed', 'login_rejected_no_automatic_retry',
+  'authentication_success_not_confirmed', 'children_response_timeout',
+  'timeline_timeout', 'timeline_http_error', 'timeline_response_unreadable', 'timeline_missing',
+  'timeline_schema_changed', 'timeline_invalid', 'timeline_subject_invalid',
+  'today_record_missing', 'today_record_missing_or_ambiguous',
+  'today_display_missing_or_ambiguous', 'display_missing_or_ambiguous', 'display_changed',
+  'duration_missing_or_ambiguous', 'duration_invalid', 'invalid_record', 'invalid_subjects',
+  'invalid_timestamp', 'subject_total_mismatch', 'subject_name_invalid',
+  'api_display_mismatch', 'jst_date_changed_retry_required',
+];
 export const SUBJECTS = { MAT: '数学', JPN: '国語', SCI: '理科', SOC: '社会', ENG: '英語', TEC: '技術', HOM: '家庭', HAP: '保体', ART: '美術', MUS: '音楽', EKN: '英検', EK2: '英語プレミアム' };
 export const SELECTORS = {
   marker: '.dailyLogRoot__J7L4P', root: '.dailyRoot__a754V', date: '.date__FKSSm',
@@ -74,6 +90,7 @@ async function visibleOne(root, selector, stage = 'extraction') {
 }
 export async function extractToday(page, records, today, clock = Date.now) {
   const expected = records.filter(record => record.date === today);
+  if (expected.length === 0) throw new LearningError('extraction', 'today_record_missing');
   if (expected.length !== 1) throw new LearningError('extraction', 'today_record_missing_or_ambiguous');
   const d = new Date(today + 'T12:00:00+09:00');
   const weekday = new Intl.DateTimeFormat('ja-JP', { weekday: 'short', timeZone: 'Asia/Tokyo' }).format(d);
@@ -103,8 +120,12 @@ export async function extractToday(page, records, today, clock = Date.now) {
   return { ...result, fetched_at: isoJst(clock()) };
 }
 export function errorMessage(code, stage) {
+  code = ERROR_CODES.includes(code) ? code : 'fetch_failed';
+  stage = STAGES.includes(stage) ? stage : 'extraction';
   let title, message;
-  if (code === 'missing_environment_variables') {
+  if (code === 'today_record_missing' && stage === 'extraction') {
+    title = '今日の学習記録はまだありません'; message = 'みまもるネットへのログインはできましたが、今日の記録は取得元にありません。学習後、タブレットから記録が反映されてから更新してください。';
+  } else if (code === 'missing_environment_variables') {
     title = '更新の準備ができていません'; message = '環境設定にログインIDとパスワードを登録してください。';
   } else if (code === 'manual_authentication_required') {
     title = '手動での確認が必要です'; message = 'みまもるネットを開き、認証コードなどの確認を済ませてください。';
@@ -117,5 +138,5 @@ export function errorMessage(code, stage) {
   } else {
     title = '学習記録を取得できませんでした'; message = 'みまもるネットで今日の記録を確認し、時間をおいて更新してください。';
   }
-  return { title, message, stage };
+  return { title, message, stage, code };
 }

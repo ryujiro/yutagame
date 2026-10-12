@@ -1,4 +1,4 @@
-import { cleanRecord, STAGES, REQUIRED_ENV, isoJst, todayJst, LearningError, errorMessage } from './learning.js';
+import { cleanRecord, STAGES, REQUIRED_ENV, ERROR_CODES, isoJst, todayJst, LearningError, errorMessage } from './learning.js';
 import { cleanMonthly, mergeMonthly, MONTHLY_FAILURE } from './monthly.js';
 import { cleanArchive } from './study-archive.js';
 
@@ -14,8 +14,12 @@ export class LearningService {
     if (!stored) { this.state = fallback; return; }
     try {
       const history = stored.history.map(record => cleanRecord(record)).sort((a, b) => b.fetched_at.localeCompare(a.fetched_at)).slice(0, 100);
-      const allowed = STAGES.flatMap(stage => ['fetch_failed', 'manual_authentication_required', 'missing_environment_variables', 'single_child_required_manual_selection_needed'].map(code => errorMessage(code, stage)));
-      const error = allowed.find(value => JSON.stringify(value) === JSON.stringify(stored.error)) || null;
+      const allowed = STAGES.flatMap(stage => ERROR_CODES.map(code => errorMessage(code, stage)));
+      const error = allowed.find(value => {
+        const { code, ...legacy } = value;
+        return JSON.stringify(value) === JSON.stringify(stored.error) ||
+          JSON.stringify(legacy) === JSON.stringify(stored.error);
+      }) || null;
       this.state = { history, lastAttempt: Number.isFinite(stored.lastAttempt) ? stored.lastAttempt : null, error, monthly_history: [], monthly_error: stored.monthly_error === MONTHLY_FAILURE ? MONTHLY_FAILURE : null };
       try {
         if (stored.monthly_history != null) {
@@ -36,6 +40,7 @@ export class LearningService {
       monthly_record: this.state.monthly_history.find(record => record.month === todayJst(now).slice(0, 7)) || null,
       monthly_history: this.state.monthly_history, monthly_error: this.state.monthly_error,
       today: todayJst(now), server_time: isoJst(now), refreshing: this.busy,
+      last_attempt_at: this.state.lastAttempt == null ? null : isoJst(this.state.lastAttempt),
       retry_after_seconds: remaining, next_refresh_at: remaining ? isoJst(next) : null,
       credentials_ready: !missing.length, missing_environment_variables: missing, error: this.state.error };
   }
