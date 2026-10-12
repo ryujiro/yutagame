@@ -7,6 +7,7 @@ import { LearningError } from '../src/learning.js';
 import worker from '../src/index.js';
 import { parseMonthly } from '../src/monthly.js';
 import { monthlyApi } from './monthly-fixture.js';
+import { summarizeStudy } from '../src/study-archive.js';
 
 function database() {
   const sql=new DatabaseSync(':memory:');
@@ -70,5 +71,24 @@ test('月実績は既存D1スナップショットに保存され、別Workerの
     await next.refresh();const restored=await manualLearning(environment(db),saved,clock,fetcher);
     assert.equal(restored.snapshot().monthly_history.length,1);assert.equal(restored.snapshot().monthly_record.total_count,15);assert.equal(calls,2);
     const original=await db.prepare('SELECT snapshot FROM learning_live_state WHERE id=1').first();assert.ok(!original.snapshot.includes('synthetic-password'));
+  } finally {db.close();}
+});
+
+test('過去のページを永続保存し、再送は同日置換・別Workerは続きから復元',async()=>{
+  const db=database(),clock=()=>now;
+  try {
+    const older={...fresh,date:'2026-09-30',total_minutes:30,subjects:{数学:30}};
+    const scan={status:'partial',cursor:'2026-09-20',checked_at:fresh.fetched_at};let resumed;
+    const fetcher=async(env,progress,clock,options)=>{
+      resumed=options.resume;
+      await options.onPage([older,fresh],scan);
+      return {...fresh,study_archive:scan};
+    };
+    const first=await manualLearning(environment(db),saved,clock,fetcher);assert.equal((await first.refresh())[0],200);
+    const next=await manualLearning(environment(db),saved,clock,fetcher);
+    assert.equal(next.snapshot().study_archive.cursor,'2026-09-20');await next.refresh();assert.equal(resumed.cursor,'2026-09-20');
+    const rows=(await db.prepare('SELECT date,total_minutes,fetched_at FROM learning_days').all()).results;
+    const summary=summarizeStudy(rows);assert.equal(summary.recorded_days,2);assert.equal(summary.total_minutes,37);
+    assert.deepEqual(next.snapshot().record,fresh);
   } finally {db.close();}
 });

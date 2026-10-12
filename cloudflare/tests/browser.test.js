@@ -15,7 +15,9 @@ function html(mismatch = false, monthlyMismatch = false) {
     if(!response.ok)return;
     document.body.innerHTML='<button>ログアウト</button><div class="dailyLogRoot__J7L4P"><div class="dailyRoot__a754V"><div class="date__FKSSm">10/10(土)</div><div class="studyDateInner__s0Jtj"><div>合計</div><div>7分</div></div><div class="subject__bWHro"><div class="summary__raEvD"><div class="name__TRpmJ">数学</div><div class="time__Pn3gb">7</div></div></div></div></div>';
     fetch('https://m.smile-zemi.jp/api/common/children');
-    fetch('https://m.smile-zemi.jp/api/chu/timeline/v2/daily-report/synthetic-child');
+    fetch('https://m.smile-zemi.jp/api/chu/timeline/v2/daily-report/synthetic-child',{headers:{Authorization:'synthetic-ticket'}});
+    const more=document.createElement('button');more.textContent='もっと見る';document.body.append(more);
+    more.onclick=()=>{more.remove();fetch('https://m.smile-zemi.jp/api/chu/timeline/v2/daily-report/synthetic-child?before=20261003&days=7',{headers:{Authorization:'synthetic-ticket'}});};
     const monthly=document.createElement('button');monthly.textContent='月';document.body.append(monthly);
     monthly.onclick=()=>{document.body.innerHTML=${JSON.stringify(monthlyHtml(monthlyMismatch))};fetch('https://m.smile-zemi.jp/api/chu/timeline/v2/monthly-report/synthetic-child');};
   };</script></body></html>`;
@@ -43,8 +45,14 @@ async function fixture(options = {}) {
         await route.fulfill({ headers: cors, json: { response_data: { child: Array.from({ length: options.children ?? 1 }, () => ({})) } } }); return;
       }
       if (path.includes('/daily-report/')) {
+        if(new URL(request.url()).searchParams.has('before')) {
+          stats.archiveGets=(stats.archiveGets || 0)+1;
+          const before=new URL(request.url()).searchParams.get('before');stats.archiveBefore=before;
+          const date=`${before.slice(0,4)}-${before.slice(4,6)}-${before.slice(6)}`;
+          await route.fulfill({status:options.archiveFailure ? 503 : 200,headers:cors,json:{response_data:{previous_studied_date:null,timelines:[{date,elapsed_time:30,reports:[{subject:'MAT',elapsed_time:30}]}]}}});return;
+        }
         await new Promise(resolve => setTimeout(resolve, 150));
-        await route.fulfill({ headers: cors, json: { response_data: { timelines: [{ date: '2026-10-10', elapsed_time: options.apiMismatch ? 8 : 7, reports: [{ subject: 'MAT', elapsed_time: options.apiMismatch ? 8 : 7 }] }] } } }); return;
+        await route.fulfill({ headers: cors, json: { response_data: { previous_studied_date: options.archive ? '2026-10-03' : null, timelines: [{ date: '2026-10-10', elapsed_time: options.apiMismatch ? 8 : 7, reports: [{ subject: 'MAT', elapsed_time: options.apiMismatch ? 8 : 7 }] }] } } }); return;
       }
       if (path.includes('/monthly-report/')) {
         stats.monthlyGets=(stats.monthlyGets || 0)+1;
@@ -110,4 +118,26 @@ test('月だけの503やDOM不一致でも日別時間を取得し、再ログ�
     assert.equal(result.total_minutes,7);assert.equal(result.monthly_error,true);assert.equal(result.monthly,undefined);
     assert.equal(f.stats.posts,1);assert.equal(f.stats.monthlyGets,1);assert.equal(f.browser.isConnected(),false);
   }
+});
+
+test('過去の追加ページ成功/503でも今日・月・ログイン回数を維持（合成）',async()=>{
+  for(const archiveFailure of [false,true]) {
+    const f=await fixture({archive:true,archiveFailure}),pages=[];
+    const result=await fetchTodayLearningTime(credentials,{},clock,f.launch,{onPage:async(records,scan)=>pages.push({records,scan})});
+    assert.equal(result.total_minutes,7);assert.equal(result.monthly.total_count,15);assert.equal(f.stats.posts,1);
+    assert.equal(f.stats.archiveGets,1);assert.equal(result.study_archive.status,archiveFailure ? 'error' : 'complete');
+    assert.equal(pages.flatMap(p=>p.records).reduce((sum,r)=>sum+r.total_minutes,0),archiveFailure ? 7 : 37);
+    assert.ok(!JSON.stringify({result,pages}).includes('synthetic-ticket'));assert.equal(f.browser.isConnected(),false);
+  }
+});
+
+test('続きのカーソルへ通常の画面要求を変更し、再ログインや秘密抽出なしで復帰（合成）',async()=>{
+  const f=await fixture({archive:true}),pages=[];
+  const result=await fetchTodayLearningTime(credentials,{},clock,f.launch,{
+    resume:{status:'partial',cursor:'2026-09-20',checked_at:'2026-10-10T17:00:00+09:00'},
+    onPage:async(records,scan)=>pages.push({records,scan}),
+  });
+  assert.equal(f.stats.archiveBefore,'20260920');assert.equal(result.study_archive.status,'complete');
+  assert.equal(pages.at(-1).records[0].date,'2026-09-20');assert.equal(result.total_minutes,7);
+  assert.equal(result.monthly.total_count,15);assert.equal(f.stats.posts,1);assert.equal(f.browser.isConnected(),false);
 });

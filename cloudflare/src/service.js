@@ -1,5 +1,6 @@
 import { cleanRecord, STAGES, REQUIRED_ENV, isoJst, todayJst, LearningError, errorMessage } from './learning.js';
 import { cleanMonthly, mergeMonthly, MONTHLY_FAILURE } from './monthly.js';
+import { cleanArchive } from './study-archive.js';
 
 export class LearningService {
   constructor(storage, env, seed, fetcher, clock = Date.now, { refreshIntervalMs = 600000 } = {}) {
@@ -22,6 +23,8 @@ export class LearningService {
           for (const value of stored.monthly_history) this.state.monthly_history = mergeMonthly(this.state.monthly_history, value);
         }
       } catch { this.state.monthly_history = []; this.state.monthly_error = MONTHLY_FAILURE; }
+      try { this.state.study_archive = stored.study_archive ? cleanArchive(stored.study_archive) : null; }
+      catch { this.state.study_archive = null; }
     } catch { this.state = fallback; }
   }
   snapshot() {
@@ -29,6 +32,7 @@ export class LearningService {
     const remaining = this.refreshIntervalMs ? Math.max(0, Math.ceil((next - now) / 1000)) : 0;
     const missing = REQUIRED_ENV.filter(name => !this.env[name]);
     return { record: this.state.history[0] || null, history: this.state.history,
+      study_archive: this.state.study_archive || null,
       monthly_record: this.state.monthly_history.find(record => record.month === todayJst(now).slice(0, 7)) || null,
       monthly_history: this.state.monthly_history, monthly_error: this.state.monthly_error,
       today: todayJst(now), server_time: isoJst(now), refreshing: this.busy,
@@ -56,6 +60,9 @@ export class LearningService {
       const fetched = await this.fetcher(this.env, progress, this.clock);
       const record = cleanRecord(fetched);
       if (record.date !== todayJst(this.clock())) throw new LearningError('extraction', 'jst_date_changed_retry_required');
+      if (fetched.study_archive) {
+        try { this.state.study_archive = cleanArchive(fetched.study_archive); } catch { /* Invalid archive metadata cannot invalidate today's record. */ }
+      }
       if (Object.hasOwn(fetched, 'monthly')) {
         try {
           const monthly = cleanMonthly(fetched.monthly);

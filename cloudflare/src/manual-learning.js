@@ -1,5 +1,7 @@
 import { LearningService } from './service.js';
 import { fetchTodayLearningTime } from './fetch-smile.js';
+import { importLearning } from './family-safety.js';
+import { cleanArchive } from './study-archive.js';
 
 function storage(db) {
   return {
@@ -13,12 +15,22 @@ function storage(db) {
     },
   };
 }
-async function realFetch(env,progress,clock) {
+async function realFetch(env,progress,clock,archiveOptions) {
   const { launch }=await import('@cloudflare/playwright');
-  return fetchTodayLearningTime(env,progress,clock,launch);
+  return fetchTodayLearningTime(env,progress,clock,launch,archiveOptions);
 }
 export async function manualLearning(env,saved,clock=Date.now,fetcher=realFetch) {
-  const service=new LearningService(storage(env.LEDGER_DB),env,saved.record,fetcher,clock,{refreshIntervalMs:0});
+  const store=storage(env.LEDGER_DB);
+  const wrappedFetch=(env,progress,clock)=>fetcher(env,progress,clock,{
+    resume:service.state.study_archive,
+    async onPage(records,scan) {
+      const checkpoint=cleanArchive(scan);
+      await importLearning(env.LEDGER_DB,records);
+      service.state.study_archive=checkpoint;
+      await store.put('dashboard',service.state);
+    },
+  });
+  const service=new LearningService(store,env,saved.record,wrappedFetch,clock,{refreshIntervalMs:0});
   await service.initialize();
   const history=new Map([...service.state.history,...saved.history].map(r=>[`${r.date}|${r.fetched_at}`,r]));
   service.state.history=[...history.values()].sort((a,b)=>Date.parse(b.fetched_at)-Date.parse(a.fetched_at)).slice(0,100);
