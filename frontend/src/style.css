@@ -175,6 +175,12 @@ h1 { font-size: 30px; letter-spacing: 0; }
 .day-overview .ledger-balance strong.negative { color: #b42318; }
 .day-overview .ledger-balance strong.compact-amount { font-size: 40px; overflow-wrap: anywhere; }
 .balance-period { font-size: 13px; color: #64748b; margin-top: 6px; }
+.balance-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.balance-heading h2 { min-width: 0; }
+.balance-heading .balance-refresh { width: 26px; height: 26px; background: transparent; }
+.balance-basis { margin-top: 4px; font-size: 13px; color: #64748b; }
+.ledger-estimated { display: flex; gap: 8px; align-items: center; margin-top: 16px; font-size: 13px; color: #64748b; }
+.ledger-estimated svg { flex-shrink: 0; }
 .day-overview .ledger-totals { grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 24px; padding-top: 18px; border-top: 1px solid #edf0f4; }
 .day-overview .ledger-totals dd { font-size: 22px; }
 .day-overview .ledger-totals { grid-template-columns: repeat(3,minmax(0,1fr)); }

@@ -39,3 +39,40 @@ test('UTCの付与時刻も日本時間の2日境界で判定し、未来日は�
   const recent=recentBalance(ledger([day('2026-10-12',999),day('2026-10-11',8),day('2026-10-10',20)],events),now);
   assert.equal(recent.total_learning_minutes,28);assert.equal(recent.total_granted_minutes,10);assert.equal(recent.balance_minutes,18);
 });
+test('推定を確定原本と分離し、今回の6件で402−430＋30＝2分を表示',()=>{
+  const source=ledger([day('2026-10-11',103),day('2026-10-10',299)],[]);
+  source.grant_history=[60,60,80,100,70,60].map((amount,index)=>({...event(String(index),index<3 ? '2026-10-10' : '2026-10-11',null),estimated_minutes:amount}));
+  source.adjustment_history=[{effective_date:'2026-10-10',delta_minutes:30}];
+  const before=structuredClone(source),recent=recentBalance(source,now);
+  assert.equal(recent.estimated_balance_minutes,2);assert.equal(recent.estimated_total_granted_minutes,430);
+  assert.equal(recent.balance_minutes,null);assert.equal(recent.total_granted_minutes,0);
+  assert.equal(recent.pending_count,6);assert.deepEqual(source,before);
+  assert.equal(recentBalance(source,now).estimated_balance_minutes,2);
+});
+test('確認済みは実分数だけ、未確定は推定だけを1回ずつ差し引く',()=>{
+  const source=ledger([day('2026-10-11',100)],[{...event('confirmed','2026-10-11',60),estimated_minutes:100}, {...event('estimate','2026-10-11',null),estimated_minutes:30}]);
+  const recent=recentBalance(source,now);
+  assert.equal(recent.total_granted_minutes,60);assert.equal(recent.estimated_total_granted_minutes,90);assert.equal(recent.estimated_balance_minutes,10);
+});
+test('分数不明・不正推定・学習欠損は0扱いせず、推定残高もnull',()=>{
+  for(const estimate of [null,undefined,0,-1,1.5,1441,'30']) {
+    const recent=recentBalance(ledger([day('2026-10-11',100)],[{...event('unknown','2026-10-11',null),estimated_minutes:estimate}]),now);
+    assert.equal(recent.estimated_balance_minutes,null);assert.equal(recent.estimated_total_granted_minutes,null);assert.equal(recent.unestimated_grant_count,1);
+  }
+  const missing=recentBalance(ledger([day('2026-10-10',100)],[{...event('missing','2026-10-11',null),estimated_minutes:30}]),now);
+  assert.equal(missing.estimated_balance_minutes,null);
+});
+test('PCがスリープ中は保存分の推定残高を維持し、接続状態を偽らない',()=>{
+  const source=ledger([day('2026-10-11',100)],[{...event('estimate','2026-10-11',null),estimated_minutes:120}]);
+  source.integration_status='stale';source.last_sync_at=new Date(now-3600000).toISOString();
+  const recent=recentBalance(source,now);
+  assert.equal(recent.estimated_balance_minutes,-20);assert.equal(recent.integration_status,'stale');assert.equal(recent.balance_minutes,null);
+});
+test('日付変更で古い推定と調整は対象外、推定不明の過去記録は妨げない',()=>{
+  const source=ledger([day('2026-10-11',100),day('2026-10-10',299)], [event('old','2026-10-09',null), {...event('yesterday','2026-10-10',null),estimated_minutes:200}, {...event('today','2026-10-11',null),estimated_minutes:40}]);
+  source.adjustment_history=[{effective_date:'2026-10-10',delta_minutes:30}];
+  assert.equal(recentBalance(source,now).estimated_balance_minutes,189);
+  const next=now+86400000;source.last_sync_at=new Date(next).toISOString();
+  const recent=recentBalance(source,next);assert.equal(recent.estimated_balance_minutes,60);assert.equal(recent.estimated_total_granted_minutes,40);
+  assert.equal(recent.manual_adjustment_minutes,0);assert.equal(recent.pending_count,1);
+});

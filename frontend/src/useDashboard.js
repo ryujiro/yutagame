@@ -9,6 +9,8 @@ export function useDashboard() {
   const busy = useRef(false);
   const deadline = useRef(0);
   const activeRequest = useRef(null);
+  const readRequest = useRef(null);
+  const readVersion = useRef(0);
 
   const accept = useCallback((next) => {
     setData(next);
@@ -17,21 +19,47 @@ export function useDashboard() {
     setRemaining(seconds);
   }, []);
 
-  const load = useCallback(async (signal) => {
-    setNetworkError(null);
+  const load = useCallback(async (signal, background = false) => {
+    if (busy.current || (background && readRequest.current)) return;
+    readRequest.current?.abort();
+    const controller = new AbortController(), version = ++readVersion.current;
+    readRequest.current = controller;
+    const cancel = () => controller.abort();
+    signal?.addEventListener('abort', cancel, { once: true });
+    if (signal?.aborted) controller.abort();
+    let timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 15000);
     try {
-      const response = await fetch('/api/dashboard', { signal, cache: 'no-store' });
+      const response = await fetch('/api/dashboard', { signal: controller.signal, cache: 'no-store' });
       if (!response.ok) throw new Error('connection');
-      accept(await response.json());
+      const next = await response.json();
+      if (!Object.hasOwn(next, 'record')) throw new Error('response');
+      if (version === readVersion.current && !controller.signal.aborted) { accept(next); setNetworkError(null); }
     } catch (error) {
-      if (error.name !== 'AbortError') setNetworkError('画面を読み込めませんでした。接続を確認し、もう一度読み込んでください。');
-    } finally { if (!signal?.aborted) setLoading(false); }
+      if (version === readVersion.current && !signal?.aborted && (error.name !== 'AbortError' || timedOut)) setNetworkError(background ? '残高の最新記録を確認できません。前回の記録を表示しています。' : '画面を読み込めませんでした。接続を確認し、もう一度読み込んでください。');
+    } finally {
+      clearTimeout(timeout); signal?.removeEventListener('abort', cancel);
+      if (readRequest.current === controller) readRequest.current = null;
+      if (version === readVersion.current && !signal?.aborted) setLoading(false);
+    }
   }, [accept]);
 
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal);
-    return () => { controller.abort(); activeRequest.current?.abort(); };
+    return () => { controller.abort(); readVersion.current++; readRequest.current?.abort(); activeRequest.current?.abort(); };
+  }, [load]);
+
+  useEffect(() => {
+    const sync = () => { if (document.visibilityState === 'visible') load(undefined, true); };
+    const timer = setInterval(sync, 30000);
+    window.addEventListener('focus', sync);
+    window.addEventListener('online', sync);
+    document.addEventListener('visibilitychange', sync);
+    return () => {
+      clearInterval(timer); window.removeEventListener('focus', sync);
+      window.removeEventListener('online', sync); document.removeEventListener('visibilitychange', sync);
+    };
   }, [load]);
 
   useEffect(() => {
@@ -50,6 +78,9 @@ export function useDashboard() {
   const refresh = useCallback(async () => {
     if (busy.current || remaining || (!data?.credentials_ready && data?.refresh_mode !== 'saved_records') || data?.refreshing) return;
     busy.current = true;
+    // A stale GET must not overwrite the result of an explicit learning refresh.
+    readVersion.current++;
+    readRequest.current?.abort();
     setUpdating(true);
     setNetworkError(null);
     const controller = new AbortController();

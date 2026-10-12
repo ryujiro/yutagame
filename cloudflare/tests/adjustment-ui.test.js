@@ -115,7 +115,7 @@ test('本番の調整ボタン・API準備と画面を確認（読み取りと�
       const data=await (await page.request.get(`${url}/api/dashboard`)).json();
       assert.equal(data.ledger.adjustment_ready,true);assert.equal(data.ledger.adjustment_error,undefined);
       assert.equal(await page.locator('.total-number').innerText(),String(data.ledger.recent.today_learning_minutes));
-      assert.equal(await amount(page).innerText(),data.ledger.recent.balance_minutes==null ? '—' : `${data.ledger.recent.balance_minutes} 分`);
+      assert.equal(await amount(page).innerText(),data.ledger.recent.estimated_balance_minutes==null ? '—' : `${data.ledger.recent.estimated_balance_minutes} 分`);
       assert.equal(await page.locator('.ledger-totals dd').nth(2).innerText(),`${data.ledger.recent.manual_adjustment_minutes} 分`);
       await page.screenshot({path:join(dir,`home-live-${width}.png`)});
       await page.getByRole('button',{name:'手動調整を追加',exact:true}).click();await page.getByRole('dialog').waitFor();

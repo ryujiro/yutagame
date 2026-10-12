@@ -114,5 +114,6 @@ test('dashboardに全履歴・利用準備状態を添付し、読み取り障�
   response=await worker.fetch(new Request('https://test/api/dashboard'),{LEDGER_DB:failing});data=await response.json();
   assert.equal(response.status,200);assert.equal(data.record.total_minutes,198);assert.ok(data.ledger.adjustment_error);
   assert.equal(data.ledger.recent.balance_minutes,null);assert.equal(data.ledger.recent.confirmed_balance_minutes,null);
+  assert.equal(data.ledger.recent.estimated_balance_minutes,null);
   assert.equal(data.ledger.adjustment_ready,undefined);assert.equal(JSON.stringify(data).includes('private_failure'),false);db.close();
 });

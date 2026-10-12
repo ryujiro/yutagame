@@ -23,8 +23,8 @@ test('学習・2日分残高の統合画面と履歴（実ブラウザ）',{skip
         const data=await (await page.request.get(`${process.env.LEDGER_UI_URL}/api/dashboard`)).json();
         const recent=data.ledger.recent;
         assert.equal(await page.locator('.ledger-totals dd').nth(0).innerText(),`${recent.total_learning_minutes} 分`);
-        assert.equal(await page.locator('.ledger-totals dd').nth(1).innerText(),`${recent.total_granted_minutes} 分`);
-        assert.equal(await page.locator('.ledger-balance strong').innerText(),recent.balance_minutes==null ? '—' : `${recent.balance_minutes} 分`);
+        assert.equal(await page.locator('.ledger-totals dd').nth(1).innerText(),recent.estimated_total_granted_minutes==null ? '—' : `${recent.estimated_total_granted_minutes} 分`);
+        assert.equal(await page.locator('.ledger-balance strong').innerText(),recent.estimated_balance_minutes==null ? '—' : `${recent.estimated_balance_minutes} 分`);
         assert.equal((await page.request.post(`${process.env.LEDGER_UI_URL}/api/family-safety/events`,{data:{}})).status(),401);
         assert.equal((await page.request.post(`${process.env.LEDGER_UI_URL}/api/balance/adjust`,{data:{}})).status(),404);
         await page.screenshot({path:join(directory,`home-live-${width}.png`),fullPage:false});
@@ -54,8 +54,8 @@ test('学習・2日分残高の統合画面と履歴（実ブラウザ）',{skip
       await page.getByText('90分',{exact:true}).waitFor();await page.getByText('推定 60分',{exact:true}).waitFor();
       await page.getByRole('button',{name:'今日の学習に戻る',exact:true}).click();
       await page.getByRole('heading',{name:'今日の学習時間',exact:true}).waitFor();
-      mode='pending';await page.reload();await page.getByText('昨日・今日の付与1件が未確認です。',{exact:true}).waitFor();
-      assert.equal(await page.locator('.ledger-balance strong').innerText(),'—');
+      mode='pending';await page.reload();await page.getByText('推定の付与1件を含みます。',{exact:true}).waitFor();
+      assert.equal(await page.locator('.ledger-balance strong').innerText(),'-19 分');
       mode='empty';await page.reload();await page.getByRole('heading',{name:'今日の学習時間',exact:true}).waitFor();
       assert.equal(await page.locator('.total-number').innerText(),'—');assert.equal(await page.locator('.ledger-balance strong').innerText(),'—');
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
