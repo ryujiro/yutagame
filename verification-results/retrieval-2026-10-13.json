@@ -1,0 +1,33 @@
+{
+  "source": "production_manual_refresh",
+  "http_status": 502,
+  "elapsed_seconds": 16.06,
+  "today": "2026-10-13",
+  "server_time": "2026-10-13T07:36:40+09:00",
+  "last_attempt_at": "2026-10-13T07:36:25+09:00",
+  "error": {
+    "title": "ログインを確認できませんでした",
+    "message": "時間をおいて更新してください。続く場合は、みまもるネットのログイン状態を確認してください。",
+    "stage": "authentication",
+    "code": "browser_operation_failed"
+  },
+  "verification_stages": {
+    "connection": "passed",
+    "login_page": "passed",
+    "authentication": "failed",
+    "records_page": "unverified",
+    "extraction": "unverified"
+  },
+  "previous_record": {
+    "date": "2026-10-12",
+    "total_minutes": 103,
+    "subjects": {
+      "数学": 30,
+      "英語": 3,
+      "国語": 16,
+      "社会": 54
+    },
+    "fetched_at": "2026-10-12T23:11:04+09:00"
+  },
+  "refreshing": false
+}
