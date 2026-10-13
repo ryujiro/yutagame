@@ -4,7 +4,7 @@ import { chromium } from 'playwright-core';
 import { mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { recentBalance } from '../src/balance.js';
+import { recentBalance, carryBalance } from '../src/balance.js';
 import { todayJst } from '../src/learning.js';
 
 const url=process.env.LEDGER_UI_URL;
@@ -18,7 +18,7 @@ function snapshot({stale=false,extra=0,unknown=false,learning=103}={}) {
     adjustment_history:[{request_id:'original',effective_date:yesterday,delta_minutes:30,note:'',reversal_of:null,created_at:`${yesterday}T09:19:00+09:00`}]};
   if(extra) ledger.grant_history.unshift({event_id:'new',occurred_at:`${today}T21:00:00+09:00`,estimated_minutes:extra,granted_minutes:null,confirmation_status:'needs_review'});
   if(unknown) ledger.grant_history[0].estimated_minutes=null;
-  ledger.recent=recentBalance(ledger,now);
+  ledger.recent=recentBalance(ledger,now);ledger.carry=carryBalance(ledger,todayJst(now-86400000),now);
   return {today,server_time:new Date(now).toISOString(),record,history:[record],ledger,refresh_mode:'manual_login',credentials_ready:true,retry_after_seconds:0};
 }
 async function balance(page,value) {
@@ -34,7 +34,7 @@ test('推定残高・最終受信・不明分数と残高だけの更新（合�
       await page.route('**/api/**',route=>{if(route.request().method()!=='GET')posts++;reads++;return route.fulfill({json:data});});
       await page.goto(url);await balance(page,2);assert.match(await page.title(),/まなびノート/);
       assert.equal(await page.locator('vite-error-overlay').count(),0);assert.equal(await page.locator('.balance-basis').innerText(),'推定');
-      assert.equal(await page.locator('.total-number').innerText(),'103');assert.equal(await page.locator('.ledger-totals dd').nth(1).innerText(),'430 分');
+      assert.equal(await page.locator('.total-number').innerText(),'103');assert.equal(await page.locator('.today-totals dd').nth(1).innerText(),'230 分');
       assert.equal(await page.getByText('推定の付与6件を含みます。',{exact:true}).isVisible(),true);
       assert.equal(await page.getByText(/未確認です/).count(),0);assert.equal(await page.getByRole('button',{name:/確定|確認する/}).count(),0);
       await page.screenshot({path:join(dir,`estimated-${width}.png`)});
@@ -105,13 +105,13 @@ test('公開版の推定残高と自動GETを読み取りだけで照合',{skip:
       observer.observe(button,{attributes:true,attributeFilter:['disabled']});
     }));
     assert.ok(reads.length>=3);assert.equal(posts,0);
-    const latest=await reads.at(-1).json(),recent=latest.ledger.recent;
+    const latest=await reads.at(-1).json(),recent=latest.ledger.carry;
     await balance(page,recent.estimated_balance_minutes);
-    assert.equal(await page.locator('.ledger-totals dd').nth(1).innerText(),`${recent.estimated_total_granted_minutes ?? '—'} 分`);
+    assert.equal(await page.locator('.today-totals dd').nth(1).innerText(),recent.today_granted_minutes==null ? '—' : `${recent.today_granted_minutes} 分`);
     assert.equal(await page.getByRole('button',{name:/確定|確認する/}).count(),0);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     assert.deepEqual(errors,[]);await page.screenshot({path:join(dir,'live-390.png')});
-    console.log(JSON.stringify({production_read_only:true,dashboard_reads:reads.length,posts,learning:recent.total_learning_minutes,grants:recent.estimated_total_granted_minutes,adjustments:recent.manual_adjustment_minutes,balance:recent.estimated_balance_minutes}));
+    console.log(JSON.stringify({production_read_only:true,dashboard_reads:reads.length,posts,learning:recent.today_learning_minutes,grants:recent.today_granted_minutes,adjustments:recent.manual_adjustment_minutes,balance:recent.estimated_balance_minutes}));
     await page.close();
   } finally {await browser.close();}
 });

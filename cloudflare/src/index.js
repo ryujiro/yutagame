@@ -1,7 +1,7 @@
 import { savedDashboard } from './saved-records.js';
 import { familySafetyApi, ledgerDashboard, importLearning } from './family-safety.js';
 import { manualLearning } from './manual-learning.js';
-import { recentBalance } from './balance.js';
+import { recentBalance, carryBalance } from './balance.js';
 import { adjustmentApi, readAdjustments } from './manual-adjustments.js';
 import { summarizeStudy } from './study-archive.js';
 
@@ -56,6 +56,11 @@ export default {
               dashboard.ledger.recent.balance_minutes=null;
               dashboard.ledger.recent.confirmed_balance_minutes=null;
               dashboard.ledger.recent.estimated_balance_minutes=null;
+              dashboard.ledger.carry=null;
+            }
+            if (dashboard.ledger.adjustment_ready) {
+              try { dashboard.ledger.carry=carryBalance(dashboard.ledger, env.BALANCE_START_DATE); }
+              catch { dashboard.ledger.carry_error='繰り越し残高を読み込めませんでした。'; }
             }
           }
           catch { dashboard.ledger_error = '時間の記録を読み込めませんでした。'; }

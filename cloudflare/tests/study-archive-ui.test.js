@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { summarizeStudy } from '../src/study-archive.js';
 import { todayJst, isoJst } from '../src/learning.js';
-import { recentBalance } from '../src/balance.js';
+import { recentBalance, carryBalance } from '../src/balance.js';
 
 const url=process.env.LEDGER_UI_URL;
 const options={executablePath:process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'};
@@ -14,7 +14,7 @@ function snapshot() {
   const now=Date.now(),today=todayJst(now),fetched_at=isoJst(now);
   const record={date:today,total_minutes:7,subjects:{数学:7},fetched_at};
   const days=Array.from({length:150},(_,i)=>({...record,date:todayJst(now-i*86400000),total_minutes:i ? 10 : 7,subjects:null}));
-  const ledger={learning_history:days,grant_history:[],adjustment_history:[],adjustment_ready:true,integration_status:'connected',last_sync_at:fetched_at};ledger.recent=recentBalance(ledger,now);
+  const ledger={learning_history:days,grant_history:[],adjustment_history:[],adjustment_ready:true,integration_status:'connected',last_sync_at:fetched_at};ledger.recent=recentBalance(ledger,now);ledger.carry=carryBalance(ledger,todayJst(now-86400000),now);
   return {today,record,history:[record],ledger,refresh_mode:'manual_login',credentials_ready:true,
     study_history:summarizeStudy(days,{status:'complete',cursor:null,checked_at:fetched_at})};
 }

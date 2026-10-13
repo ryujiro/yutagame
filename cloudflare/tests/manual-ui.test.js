@@ -26,7 +26,7 @@ test('更新ボタン→POST→ログイン取得結果を表示（実画面・�
         const minutes=6+posts;
         const fresh={date:'2026-10-11',total_minutes:minutes,subjects:{数学:minutes},fetched_at:`2026-10-11T10:00:0${posts}+09:00`};
         await route.fulfill({json:{...body,record:fresh,history:[fresh,...body.history],retry_after_seconds:0,next_refresh_at:null,refreshing:false,
-          ledger:{...body.ledger,recent:{...body.ledger?.recent,today_learning_minutes:minutes,total_learning_minutes:198+minutes}}}});
+          ledger:{...body.ledger,carry:{...body.ledger?.carry,today_learning_minutes:minutes}}}});
       });
       await page.goto(process.env.LEDGER_UI_URL);
       await page.getByRole('heading',{name:'今日の学習時間'}).waitFor();
