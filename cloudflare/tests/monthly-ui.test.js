@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { parseMonthly, MONTHLY_FAILURE } from '../src/monthly.js';
 import { monthlyApi } from './monthly-fixture.js';
 import { todayJst } from '../src/learning.js';
-import { recentBalance } from '../src/balance.js';
+import { recentBalance, carryBalance } from '../src/balance.js';
 
 const url=process.env.LEDGER_UI_URL;
 const options={executablePath:process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'};
@@ -15,7 +15,7 @@ function snapshot() {
   const now=Date.now(),today=todayJst(now),yesterday=todayJst(now-86400000),fetched_at=new Date(now).toISOString();
   const record={date:today,total_minutes:7,subjects:{数学:7},fetched_at};
   const ledger={learning_history:[record,{...record,date:yesterday,total_minutes:8,subjects:{数学:8}}],grant_history:[],adjustment_history:[],adjustment_ready:true,last_sync_at:fetched_at,integration_status:'connected'};
-  ledger.recent=recentBalance(ledger,now);
+  ledger.recent=recentBalance(ledger,now);ledger.carry=carryBalance(ledger,todayJst(now-86400000),now);
   const monthly={...parseMonthly(monthlyApi())[0],month:today.slice(0,7),fetched_at};
   return {today,record,history:[record],ledger,refresh_mode:'manual_login',credentials_ready:true,retry_after_seconds:0,monthly_record:monthly,monthly_history:[monthly],monthly_error:null};
 }
@@ -65,10 +65,10 @@ test('本番の月実績・日別時間・残高をAPIと3幅で照合（読み�
       for(const [name,value] of Object.entries(data.monthly_record.subjects)) {
         const row=section.getByRole('rowheader',{name,exact:true}).locator('..');assert.equal(await row.locator('td').first().innerText(),String(value.count));assert.equal(await row.locator('td').nth(1).innerText(),String(value.target));
       }
-      assert.equal(await page.locator('.total-number').innerText(),String(data.ledger.recent.today_learning_minutes));
+      assert.equal(await page.locator('.total-number').innerText(),String(data.ledger.carry.today_learning_minutes ?? '—'));
       await section.scrollIntoViewIfNeeded();await check(page);await page.screenshot({path:join(dir,`monthly-live-${width}.png`)});
       await page.getByRole('button',{name:'取得履歴',exact:true}).click();await page.locator('.monthly-history table').waitFor();assert.equal(posts,0);assert.deepEqual(errors,[]);
-      console.log(JSON.stringify({production_read_only:true,width,month:data.monthly_record.month,total:data.monthly_record.total_count,target:data.monthly_record.target_count,daily_minutes:data.record.total_minutes,balance:data.ledger.recent.estimated_balance_minutes,posts}));await page.close();
+      console.log(JSON.stringify({production_read_only:true,width,month:data.monthly_record.month,total:data.monthly_record.total_count,target:data.monthly_record.target_count,daily_minutes:data.record.total_minutes,balance:data.ledger.carry.estimated_balance_minutes,posts}));await page.close();
     }
   } finally {await browser.close();}
 });

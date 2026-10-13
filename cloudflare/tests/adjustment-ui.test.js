@@ -4,7 +4,7 @@ import { chromium } from 'playwright-core';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { recentBalance } from '../src/balance.js';
+import { recentBalance, carryBalance } from '../src/balance.js';
 import { todayJst } from '../src/learning.js';
 
 const url=process.env.LEDGER_UI_URL;
@@ -16,7 +16,7 @@ async function fixture(page) {
     learning_history:[record,{date:yesterday,total_minutes:198,fetched_at:`${yesterday}T18:00:00+09:00`}],
     grant_history:[{event_id:'known',occurred_at:`${yesterday}T16:00:00+09:00`,granted_minutes:210,confirmation_status:'confirmed'}],adjustment_history:entries};
   await page.route('**/api/dashboard',route=>route.fulfill({json:{today,server_time:new Date(now).toISOString(),record,history:[record],
-    refresh_mode:'manual_login',credentials_ready:true,retry_after_seconds:0,ledger:{...ledger,recent:recentBalance(ledger,now)}}}));
+    refresh_mode:'manual_login',credentials_ready:true,retry_after_seconds:0,ledger:{...ledger,recent:recentBalance(ledger,now),carry:carryBalance(ledger,yesterday,now)}}}));
   function store(payload) {
     if(entries.some(e=>e.request_id===payload.request_id)) return;
     const original=entries.find(e=>e.request_id===payload.reversal_of);
@@ -41,7 +41,7 @@ test('手動調整の追加・減算・取消・履歴とレスポンシブ表�
         const payload=route.request().postDataJSON();assert.equal(Object.hasOwn(payload,'password'),false);
         posts++;if(posts===1) {entered();await gate;}journal.store(payload);await route.fulfill({json:{saved:true}});
       });
-      await page.goto(url);await expectBalance(page,-4);
+      await page.goto(url);await expectBalance(page,8);
       assert.match(await page.title(),/まなびノート/);assert.equal(await page.locator('vite-error-overlay').count(),0);
       await page.getByRole('button',{name:'手動調整を追加',exact:true}).click();
       const dialog=page.getByRole('dialog');await dialog.waitFor();assert.equal(await dialog.locator('input[type=password]').count(),0);
@@ -50,19 +50,19 @@ test('手動調整の追加・減算・取消・履歴とレスポンシブ表�
       await page.screenshot({path:join(dir,`dialog-${width}.png`)});
       await dialog.getByRole('button',{name:'追加する',exact:true}).click();await started;
       assert.equal(await dialog.getByRole('button',{name:'保存中',exact:true}).isDisabled(),true);release();
-      await expectBalance(page,26);assert.equal(posts,1);assert.equal(await page.locator('.total-number').innerText(),'8');
-      assert.equal(await page.locator('.ledger-totals dd').nth(0).innerText(),'206 分');
-      assert.equal(await page.locator('.ledger-totals dd').nth(1).innerText(),'210 分');
+      await expectBalance(page,38);assert.equal(posts,1);assert.equal(await page.locator('.total-number').innerText(),'8');
+      assert.equal(await page.locator('.today-totals dd').nth(0).innerText(),'8 分');
+      assert.equal(await page.locator('.today-totals dd').nth(1).innerText(),'0 分');
       assert.equal(await page.locator('.adjustment-list time').innerText(),`${Number(todayJst().slice(5,7))}/${Number(todayJst().slice(8))} 00:30`);
       await page.screenshot({path:join(dir,`added-${width}.png`)});
       await page.getByRole('button',{name:'手動調整を追加',exact:true}).click();
       await dialog.getByRole('button',{name:'減算',exact:true}).click();await dialog.getByRole('button',{name:'10分',exact:true}).click();
       await dialog.getByRole('textbox').fill('長いメモ'.repeat(24));await dialog.getByRole('button',{name:'追加する',exact:true}).click();
-      await expectBalance(page,16);assert.equal(posts,2);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      await expectBalance(page,28);assert.equal(posts,2);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
       await page.getByRole('button',{name:'取り消す +30分',exact:true}).click();await dialog.getByRole('button',{name:'取り消す',exact:true}).click();
-      await expectBalance(page,-14);assert.equal(posts,3);assert.equal(await page.getByText('取消済み',{exact:true}).isVisible(),true);
+      await expectBalance(page,-2);assert.equal(posts,3);assert.equal(await page.getByText('取消済み',{exact:true}).isVisible(),true);
       assert.equal(await page.getByRole('button',{name:'取り消す +30分',exact:true}).count(),0);
-      await page.reload();await expectBalance(page,-14);assert.equal(journal.entries.length,3);
+      await page.reload();await expectBalance(page,-2);assert.equal(journal.entries.length,3);
       await page.getByRole('button',{name:'取得履歴',exact:true}).click();await page.getByRole('heading',{name:'手動調整の履歴',exact:true}).waitFor();
       assert.equal(await page.getByText('+30分',{exact:true}).count(),1);assert.equal(await page.getByText('-30分',{exact:true}).count(),1);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -83,14 +83,14 @@ test('保存確認の失敗後も同じ操作番号で再確認し、二重加�
         if(payloads.length===1) {if(lostAck) journal.store(payload);await route.fulfill({status:503,json:{message:'synthetic_failure'}});}
         else {journal.store(payload);await route.fulfill({json:{saved:true}});}
       });
-      await page.goto(url);await expectBalance(page,-4);await page.getByRole('button',{name:'手動調整を追加',exact:true}).click();
+      await page.goto(url);await expectBalance(page,8);await page.getByRole('button',{name:'手動調整を追加',exact:true}).click();
       await page.getByRole('dialog').getByRole('button',{name:'追加する',exact:true}).click();
       if(!lostAck) {
         await page.getByRole('button',{name:'保存結果を再確認',exact:true}).waitFor();
         assert.equal(await page.getByRole('spinbutton').isDisabled(),true);assert.equal(payloads.length,1);
         await page.getByRole('button',{name:'保存結果を再確認',exact:true}).click();
       }
-      await expectBalance(page,26);assert.equal(journal.entries.length,1);
+      await expectBalance(page,38);assert.equal(journal.entries.length,1);
       assert.equal(payloads.length,lostAck ? 1 : 2);if(!lostAck) assert.deepEqual(payloads[0],payloads[1]);
       assert.deepEqual(errors,[]);await page.close();
     }
@@ -114,9 +114,9 @@ test('本番の調整ボタン・API準備と画面を確認（読み取りと�
       await page.goto(url);await page.getByRole('heading',{name:'今日の学習時間',exact:true}).waitFor();
       const data=await (await page.request.get(`${url}/api/dashboard`)).json();
       assert.equal(data.ledger.adjustment_ready,true);assert.equal(data.ledger.adjustment_error,undefined);
-      assert.equal(await page.locator('.total-number').innerText(),String(data.ledger.recent.today_learning_minutes));
-      assert.equal(await amount(page).innerText(),data.ledger.recent.estimated_balance_minutes==null ? '—' : `${data.ledger.recent.estimated_balance_minutes} 分`);
-      assert.equal(await page.locator('.ledger-totals dd').nth(2).innerText(),`${data.ledger.recent.manual_adjustment_minutes} 分`);
+      assert.equal(await page.locator('.total-number').innerText(),String(data.ledger.carry.today_learning_minutes ?? '—'));
+      assert.equal(await amount(page).innerText(),data.ledger.carry.estimated_balance_minutes==null ? '—' : `${data.ledger.carry.estimated_balance_minutes} 分`);
+      assert.equal(await page.locator('.today-totals dd').nth(2).innerText(),`${data.ledger.carry.manual_adjustment_minutes} 分`);
       await page.screenshot({path:join(dir,`home-live-${width}.png`)});
       await page.getByRole('button',{name:'手動調整を追加',exact:true}).click();await page.getByRole('dialog').waitFor();
       assert.equal(await page.getByRole('dialog').locator('input[type=password]').count(),0);

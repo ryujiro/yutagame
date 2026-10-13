@@ -8,10 +8,10 @@ function Amount({ value }) { return <>{value == null ? '—' : value}<small>{val
 export function TimeBalance({ ledger, error, record, today, reload }) {
   const [editing,setEditing]=useState(null),[notice,setNotice]=useState('');
   const [reloading,setReloading]=useState(false);
-  const recent=ledger?.recent;
+  const recent=ledger?.carry;
   const estimated=recent?.pending_count>0;
-  const balance=recent && Object.hasOwn(recent,'estimated_balance_minutes') ? recent.estimated_balance_minutes : recent?.balance_minutes;
-  const granted=recent && Object.hasOwn(recent,'estimated_total_granted_minutes') ? recent.estimated_total_granted_minutes : recent?.total_granted_minutes;
+  const balance=recent?.estimated_balance_minutes;
+  const granted=recent?.today_granted_minutes;
   const refreshBalance=async()=>{setReloading(true);try {await reload();} finally {setReloading(false);}};
   const learned=recent?.today_learning_minutes ?? (record?.date===today ? record.total_minutes : null);
   const date=value=>value ? value.slice(5).replace('-','/') : '';
@@ -21,7 +21,7 @@ export function TimeBalance({ ledger, error, record, today, reload }) {
   return <section className="day-overview" aria-label="今日の学習と時間の残高">
     <div className="overview-metrics">
       <div className="overview-metric"><h2>今日の学習時間</h2><div className="total"><span className="total-number">{learned ?? '—'}</span>{learned!=null && <span className="total-unit">分</span>}</div></div>
-      <div className="overview-metric"><div className="balance-heading"><h2>時間の残高</h2><button type="button" className="icon-button balance-refresh" title="残高の記録を更新" aria-label="残高を更新" disabled={reloading} onClick={refreshBalance}><RefreshCw size={17} className={reloading ? 'spinning' : ''}/></button></div><div className="ledger-balance"><strong className={`${balance<0 ? 'negative' : ''} ${String(balance ?? '').length>5 ? 'compact-amount' : ''}`}><Amount value={balance} /></strong></div>{estimated && <p className="balance-basis">推定</p>}<p className="balance-period">昨日・今日 {recent ? `（${date(recent.window_start)}・${date(recent.window_end)}）` : ''}</p></div>
+      <div className="overview-metric"><div className="balance-heading"><h2>時間の残高</h2><button type="button" className="icon-button balance-refresh" title="残高の記録を更新" aria-label="残高を更新" disabled={reloading} onClick={refreshBalance}><RefreshCw size={17} className={reloading ? 'spinning' : ''}/></button></div><div className="ledger-balance"><strong className={`${balance<0 ? 'negative' : ''} ${String(balance ?? '').length>5 ? 'compact-amount' : ''}`}><Amount value={balance} /></strong></div>{estimated && <p className="balance-basis">推定</p>}<p className="balance-period">繰り越し＋今日の増減</p></div>
     </div>
     <div className="manual-adjustments">
       <div className="adjustment-heading"><h3>手動調整</h3><button type="button" className="icon-button" title="調整を追加" aria-label="手動調整を追加" disabled={!ledger?.adjustment_ready} onClick={()=>{setNotice('');setEditing({});}}><Plus size={20}/></button></div>
@@ -34,11 +34,13 @@ export function TimeBalance({ ledger, error, record, today, reload }) {
       {notice && <p className="adjustment-notice" role="status">{notice}</p>}
     </div>
     {recent ? <>
-      <dl className="ledger-totals"><div><dt>2日分の学習</dt><dd><Amount value={recent.total_learning_minutes} /></dd></div><div><dt>2日分の付与（{estimated ? '推定含む' : '確認済み'}）</dt><dd><Amount value={granted} /></dd></div><div><dt>2日分の手動調整</dt><dd><Amount value={recent.manual_adjustment_minutes ?? 0} /></dd></div></dl>
+      <dl className="ledger-totals carry-totals"><div><dt>以前からの繰り越し</dt><dd><Amount value={recent.earlier_carry_minutes} /></dd></div><div><dt>昨日の増減</dt><dd><Amount value={recent.yesterday_net_minutes} /></dd></div><div><dt>今日への繰り越し</dt><dd><Amount value={recent.carry_in_minutes} /></dd></div></dl>
+      <p className="ledger-note">昨日の増減＝学習−PC付与＋調整。前日終了時の残高がマイナスなら、翌日の繰り越しは0分です。</p>
+      <dl className="ledger-totals today-totals"><div><dt>今日の学習</dt><dd><Amount value={recent.today_learning_minutes} /></dd></div><div><dt>今日のPC付与（{recent.today_pending_count>0 ? '推定含む' : '確認済み'}）</dt><dd><Amount value={granted} /></dd></div><div><dt>今日の手動調整</dt><dd><Amount value={recent.manual_adjustment_minutes ?? 0} /></dd></div></dl>
       {recent.unestimated_grant_count>0 ? <p className="ledger-pending"><AlertCircle size={18}/><span>付与{recent.unestimated_grant_count}件の分数が不明です。</span></p> : estimated && <p className="ledger-estimated"><Info size={18}/><span>推定の付与{recent.pending_count}件を含みます。</span></p>}
       {recent.missing_learning_days.length>0 && <p className="ledger-note">{recent.missing_learning_days.map(date).join('・')}の学習記録が未取得です。</p>}
       {recent.integration_status!=='connected' && <p className="ledger-note">PCの最新記録を確認できていません。{recent.last_sync_at && `最終受信 ${time(recent.last_sync_at)}時点の記録です。`}</p>}
-    </> : <p className="ledger-note">{error || 'PCの時間記録はまだ接続されていません。'}</p>}
+    </> : <p className="ledger-note">{error || ledger?.carry_error || ledger?.adjustment_error || 'PCの時間記録はまだ接続されていません。'}</p>}
     {editing && <AdjustmentDialog undo={editing.undo} onClose={close} onSaved={saved}/>}
   </section>;
 }

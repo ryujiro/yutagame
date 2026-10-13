@@ -4,10 +4,10 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { chromium } from 'playwright-core';
-import { recentBalance } from '../src/balance.js';
+import { recentBalance, carryBalance } from '../src/balance.js';
 import { todayJst } from '../src/learning.js';
 
-test('学習・2日分残高の統合画面と履歴（実ブラウザ）',{skip:!process.env.LEDGER_UI_URL},async()=>{
+test('学習・繰り越し残高の統合画面と履歴（実ブラウザ）',{skip:!process.env.LEDGER_UI_URL},async()=>{
   const browser=await chromium.launch({executablePath:process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'});
   const directory=process.env.LEDGER_ARTIFACT_DIR || join(tmpdir(),'manabi-ledger-ui');await mkdir(directory,{recursive:true});
   try {
@@ -21,9 +21,9 @@ test('学習・2日分残高の統合画面と履歴（実ブラウザ）',{skip
       assert.equal(await page.getByRole('button',{name:'時間の残高',exact:true}).count(),0);
       if(process.env.LEDGER_EXPECT_LIVE==='1') {
         const data=await (await page.request.get(`${process.env.LEDGER_UI_URL}/api/dashboard`)).json();
-        const recent=data.ledger.recent;
-        assert.equal(await page.locator('.ledger-totals dd').nth(0).innerText(),`${recent.total_learning_minutes} 分`);
-        assert.equal(await page.locator('.ledger-totals dd').nth(1).innerText(),recent.estimated_total_granted_minutes==null ? '—' : `${recent.estimated_total_granted_minutes} 分`);
+        const recent=data.ledger.carry;
+        assert.equal(await page.locator('.today-totals dd').nth(0).innerText(),`${recent.today_learning_minutes} 分`);
+        assert.equal(await page.locator('.today-totals dd').nth(1).innerText(),recent.today_granted_minutes==null ? '—' : `${recent.today_granted_minutes} 分`);
         assert.equal(await page.locator('.ledger-balance strong').innerText(),recent.estimated_balance_minutes==null ? '—' : `${recent.estimated_balance_minutes} 分`);
         assert.equal((await page.request.post(`${process.env.LEDGER_UI_URL}/api/family-safety/events`,{data:{}})).status(),401);
         assert.equal((await page.request.post(`${process.env.LEDGER_UI_URL}/api/balance/adjust`,{data:{}})).status(),404);
@@ -43,10 +43,10 @@ test('学習・2日分残高の統合画面と履歴（実ブラウザ）',{skip
             {event_id:'d',occurred_at:`${old}T10:00:00+09:00`,estimated_minutes:60,confirmation_status:'needs_review'}]};
         if(mode==='pending') ledger.grant_history.push({event_id:'e',occurred_at:`${today}T09:00:00+09:00`,estimated_minutes:15,confirmation_status:'needs_review'});
         if(mode==='empty') {ledger.learning_history=[];ledger.grant_history=[];}
-        ledger.recent=recentBalance(ledger,now);
+        ledger.recent=recentBalance(ledger,now);ledger.carry=carryBalance(ledger,todayJst(now-86400000),now);
         await route.fulfill({response,json:{...data,record:mode==='empty' ? null : record,history:mode==='empty' ? [] : [record],ledger}});
       });
-      await page.reload();await page.locator('.ledger-balance strong').getByText('-4').waitFor();
+      await page.reload();await page.locator('.ledger-balance strong').getByText('8').waitFor();
       assert.equal(await page.locator('.total-number').innerText(),'8');
       assert.equal(await page.getByText('付与1件が要確認です。',{exact:true}).count(),0);
       await page.screenshot({path:join(directory,`home-known-${width}.png`),fullPage:false});
@@ -55,7 +55,7 @@ test('学習・2日分残高の統合画面と履歴（実ブラウザ）',{skip
       await page.getByRole('button',{name:'今日の学習に戻る',exact:true}).click();
       await page.getByRole('heading',{name:'今日の学習時間',exact:true}).waitFor();
       mode='pending';await page.reload();await page.getByText('推定の付与1件を含みます。',{exact:true}).waitFor();
-      assert.equal(await page.locator('.ledger-balance strong').innerText(),'-19 分');
+      assert.equal(await page.locator('.ledger-balance strong').innerText(),'-7 分');
       mode='empty';await page.reload();await page.getByRole('heading',{name:'今日の学習時間',exact:true}).waitFor();
       assert.equal(await page.locator('.total-number').innerText(),'—');assert.equal(await page.locator('.ledger-balance strong').innerText(),'—');
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
